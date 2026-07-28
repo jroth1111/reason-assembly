@@ -5,6 +5,7 @@ import asyncio
 import ipaddress
 import json
 import re
+import shutil
 import socket
 import subprocess
 from datetime import datetime, timezone
@@ -37,6 +38,11 @@ ALLOWED_MIME = {
     "text/xml",
 }
 SENSITIVE_QUERY = re.compile(r"(?i)(?:key|token|secret|signature|credential|auth)")
+
+
+def command_shell() -> str:
+    """Prefer zsh for compatibility, with a portable POSIX-shell fallback."""
+    return shutil.which("zsh") or shutil.which("sh") or "/bin/sh"
 
 
 class _TextExtractor(HTMLParser):
@@ -293,7 +299,7 @@ def run_command_verifier(
             cwd=cwd,
             env=safe_env,
             shell=True,
-            executable="/bin/zsh",
+            executable=command_shell(),
             text=True,
             capture_output=True,
             timeout=timeout,

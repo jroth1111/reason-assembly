@@ -94,6 +94,7 @@ while preserving an honest view of the proxy catalogue.
 
 - Python 3.11 or 3.12
 - [`uv`](https://docs.astral.sh/uv/)
+- a POSIX shell (`zsh` is preferred; `/bin/sh` is the fallback)
 - a running CLIProxyAPI-compatible endpoint
 - a proxy configuration containing `host`, `port`, and any required
   authentication plus optional `smart-aliases`

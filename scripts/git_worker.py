@@ -35,7 +35,7 @@ from protocols import (
 from deliberation import deterministic_order, judgment_assessment
 from routing import Route, shuffled_labels
 from transport import ProxySettings, ProxyTransport
-from verification import snapshot_sources
+from verification import command_shell, snapshot_sources
 from v4 import (
     default_reporting_rules,
     digest,
@@ -258,7 +258,7 @@ def run_test_command(
 ) -> CommandReceipt:
     try:
         result = subprocess.run(
-            ["/bin/zsh", "-lc", command],
+            [command_shell(), "-lc", command],
             cwd=repo,
             text=True,
             capture_output=True,

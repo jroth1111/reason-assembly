@@ -11,6 +11,7 @@ from verification import (
     MAX_SOURCE_BYTES,
     build_verification_plan,
     calculate,
+    command_shell,
     fetch_source,
     run_calculation_verifier,
     run_command_verifier,
@@ -18,6 +19,14 @@ from verification import (
     validate_source_url,
 )
 from verification import _extract_source
+
+
+def test_command_shell_falls_back_to_posix_sh(monkeypatch):
+    locations = {"zsh": None, "sh": "/bin/sh"}
+    monkeypatch.setattr(
+        "verification.shutil.which", lambda name: locations.get(name)
+    )
+    assert command_shell() == "/bin/sh"
 
 
 @pytest.mark.parametrize(
