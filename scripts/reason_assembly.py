@@ -1139,8 +1139,6 @@ def stats_command() -> dict[str, Any]:
     }
     runs = 0
     run_roots = iter_run_roots(STATE)
-    if not run_roots:
-        return {name: {} for name in dimensions}
     for run_id, _root in run_roots:
         store, manifest = load_v4_run(run_id)
         try:

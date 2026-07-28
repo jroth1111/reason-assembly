@@ -533,6 +533,46 @@ def test_invalid_state_path_is_reported_without_traceback(tmp_path):
     assert "Traceback" not in result.stderr
 
 
+def test_empty_stats_reports_a_stable_zero_result_without_traceback(tmp_path):
+    state = tmp_path / "empty-state"
+    environment = {
+        **os.environ,
+        "REASON_ASSEMBLY_STATE": str(state),
+        "PYTHONPATH": "",
+        "UV_FROZEN": "1",
+    }
+
+    human = subprocess.run(
+        [str(ROOT / "bin" / "reason-assembly"), "stats"],
+        text=True,
+        capture_output=True,
+        check=False,
+        env=environment,
+    )
+    assert human.returncode == 0, human.stderr
+    assert human.stdout == "runs_with_observed_outcomes=0\n"
+    assert human.stderr == ""
+
+    machine = subprocess.run(
+        [str(ROOT / "bin" / "reason-assembly"), "stats", "--json"],
+        text=True,
+        capture_output=True,
+        check=False,
+        env=environment,
+    )
+    assert machine.returncode == 0, machine.stderr
+    payload = json.loads(machine.stdout)
+    assert payload["runs_with_observed_outcomes"] == 0
+    assert payload["routing_changed"] is False
+    assert payload["reliability_diagnostics"] == {}
+    assert payload["reliability"]["buckets"] == []
+    assert payload["model"] == {}
+    assert payload["family"] == {}
+    assert payload["role"] == {}
+    assert payload["domain"] == {}
+    assert payload["mode"] == {}
+
+
 def test_release_identity_is_consistent_across_all_release_surfaces():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     lock = tomllib.loads((ROOT / "uv.lock").read_text())
