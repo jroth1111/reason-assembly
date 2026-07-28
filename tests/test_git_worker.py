@@ -358,6 +358,10 @@ async def test_disposable_repo_candidate_fusion_cleanup_and_apply_paths(
         settings=fake_settings,
     )
     assert applied == result.manifest.final_commit
+    assert resolve_base(repo, "HEAD") == base
+    assert set(
+        git(repo, "diff", "--cached", "--name-only").stdout.splitlines()
+    ) == {"calc.py", "tests/test_feature.py"}
     assert (repo / "calc.py").read_text() == "def value():\n    return 2\n"
 
 

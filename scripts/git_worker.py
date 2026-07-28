@@ -1782,7 +1782,9 @@ def apply_run(
     parent = git(actual_repo, "rev-parse", f"{commit}^").stdout.strip()
     if parent != head:
         raise RuntimeError("final artifact is not based directly on the checkout")
-    result = git(actual_repo, "cherry-pick", commit, check=False)
+    result = git(
+        actual_repo, "cherry-pick", "--no-commit", commit, check=False
+    )
     if result.returncode:
         git(actual_repo, "cherry-pick", "--abort", check=False)
         restored = resolve_base(actual_repo, "HEAD")
