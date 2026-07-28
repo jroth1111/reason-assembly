@@ -257,13 +257,10 @@ def run_test_command(
     repo: Path, command: str, timeout: int, phase: str
 ) -> CommandReceipt:
     try:
-        result = subprocess.run(
-            [command_shell(), "-lc", command],
-            cwd=repo,
-            text=True,
-            capture_output=True,
-            timeout=timeout,
-            env={
+        with tempfile.TemporaryDirectory(
+            prefix="ccycouncil-pycache-"
+        ) as pycache:
+            env = {
                 key: value
                 for key, value in os.environ.items()
                 if key
@@ -277,8 +274,16 @@ def run_test_command(
                     "SSL_CERT_FILE",
                     "SSL_CERT_DIR",
                 }
-            },
-        )
+            }
+            env["PYTHONPYCACHEPREFIX"] = pycache
+            result = subprocess.run(
+                [command_shell(), "-c", command],
+                cwd=repo,
+                text=True,
+                capture_output=True,
+                timeout=timeout,
+                env=env,
+            )
         output = (result.stdout + "\n" + result.stderr)[-12_000:]
         return CommandReceipt(
             command=command,

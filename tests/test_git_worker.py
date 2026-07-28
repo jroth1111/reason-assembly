@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +22,7 @@ from git_worker import (
     parse_codex_events,
     resolve_base,
     resolve_review_target,
+    run_test_command,
     run_implementation,
 )
 
@@ -72,6 +75,47 @@ print(json.dumps({"item":{"type":"agent_message","text":message}}))
     )
     script.chmod(0o755)
     return script
+
+
+def test_test_command_preserves_the_authorized_path(tmp_path, monkeypatch):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    command = bin_dir / "ccycouncil-test-command"
+    command.write_text("#!/bin/sh\nexit 0\n")
+    command.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ["PATH"])
+
+    receipt = run_test_command(
+        tmp_path, "ccycouncil-test-command", 30, "test"
+    )
+
+    assert receipt.exit_code == 0
+    assert not receipt.timed_out
+
+
+def test_test_command_isolates_python_bytecode_between_runs(tmp_path):
+    module = tmp_path / "calc.py"
+    module.write_text("def value():\n    return 1\n")
+    python = shlex.quote(sys.executable)
+    first = run_test_command(
+        tmp_path,
+        f"{python} -c 'import calc; raise SystemExit(calc.value() != 1)'",
+        30,
+        "baseline",
+    )
+    original = module.stat()
+    module.write_text("def value():\n    return 2\n")
+    os.utime(module, ns=(original.st_atime_ns, original.st_mtime_ns))
+
+    second = run_test_command(
+        tmp_path,
+        f"{python} -c 'import calc; raise SystemExit(calc.value() != 2)'",
+        30,
+        "test-green",
+    )
+
+    assert first.exit_code == 0
+    assert second.exit_code == 0
 
 
 def test_review_target_selection_and_empty_refusal(tmp_path):
