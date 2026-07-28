@@ -1,0 +1,61 @@
+# Python environments and bytecode
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test, type-checking, lint, and coverage output
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+
+# Credentials and machine-local configuration
+.env
+.env.*
+!.env.example
+config.yaml
+config.local.yaml
+*.local.yaml
+auth/
+credentials/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ccycouncil private state and generated evidence
+.ccycouncil/
+state/
+runs/
+artifacts/
+sync-receipts/
+catalogue-sync-latest.json
+*.receipt.json
+
+# Local agent and editor state
+.codex/
+.work/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs, temporary files, and operating-system metadata
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

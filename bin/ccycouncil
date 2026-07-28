@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+project_dir=$(dirname -- "$script_dir")
+
+exec uv run --quiet --project "$project_dir" \
+  python "$project_dir/scripts/ccycouncil.py" "$@"
