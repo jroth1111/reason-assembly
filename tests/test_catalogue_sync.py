@@ -17,7 +17,7 @@ from catalogue_sync import (
     prune_smart_aliases,
     synchronize_catalogue,
 )
-from ccycouncil import print_models
+from reason_assembly import print_models
 from contracts import HealthResult
 from transport import ProxyTransport, merge_catalogues
 
@@ -81,7 +81,7 @@ def mock_client(handler) -> httpx.AsyncClient:
 
 
 def is_metadata_request(request: httpx.Request) -> bool:
-    return request.url.params.get("client_version") == "ccycouncil-v4"
+    return request.url.params.get("client_version") == "reason-assembly-v4"
 
 
 @pytest.mark.asyncio

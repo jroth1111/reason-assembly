@@ -24,7 +24,7 @@ Older snapshots are not guaranteed to receive backports.
 
 ## Scope reminders
 
-`ccycouncil` sends prompts and selected context to the providers configured in
+`reason-assembly` sends prompts and selected context to the providers configured in
 your proxy. Local permission hardening protects files on disk but does not make
 provider-bound inputs private. Verification commands and implementation tasks
 can execute local processes; only provide commands and repositories you trust.

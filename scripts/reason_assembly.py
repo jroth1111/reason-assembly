@@ -19,6 +19,7 @@ import httpx
 from pydantic import ValidationError
 
 from artifacts import RunStore, SecretGuard
+from identity import CANONICAL_CLI, LEGACY_CLI, PRODUCT_DESCRIPTOR, VERSION
 from contracts import (
     ClaimGenealogy,
     FinalityCertificate,
@@ -40,6 +41,12 @@ from git_worker import (
 from protocols import CouncilRequest, ProtocolResult, STATE, new_run_id, run_council
 from reliability import ReliabilityStore
 from routing import fixed_route
+from state_compat import (
+    compatible_state_roots,
+    iter_run_roots,
+    locate_run_root,
+    prepare_state_root,
+)
 from v4 import CoFailureStore, digest, propagate_taint
 from v4_state import AnchorStore, PrivateJsonStore
 from transport import (
@@ -49,9 +56,6 @@ from transport import (
     ProxyTransport,
     QuotaError,
 )
-
-
-VERSION = "0.4.1"
 
 
 def context_files(paths: list[str]) -> list[tuple[str, str]]:
@@ -93,27 +97,34 @@ def add_prompt(parser: argparse.ArgumentParser) -> None:
 
 
 def parser() -> argparse.ArgumentParser:
-    root = argparse.ArgumentParser(prog="ccycouncil")
+    root = argparse.ArgumentParser(
+        prog=CANONICAL_CLI,
+        description=PRODUCT_DESCRIPTOR,
+        epilog=(
+            "Safety: prompts and selected context may be sent to configured providers; "
+            "verification and implementation commands execute locally only when supplied."
+        ),
+    )
     root.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
-    commands = root.add_subparsers(dest="cmd", required=True)
+    commands = root.add_subparsers(dest="cmd", required=True, metavar="COMMAND")
 
-    models = commands.add_parser("models")
+    models = commands.add_parser("models", help="list catalogued and eligible models")
     models.add_argument("--json", action="store_true")
 
-    sync = commands.add_parser("sync")
+    sync = commands.add_parser("sync", help="synchronize proxy catalogue metadata")
     sync.add_argument("--json", action="store_true")
 
-    doctor = commands.add_parser("doctor")
+    doctor = commands.add_parser("doctor", help="diagnose catalogue and model health")
     doctor.add_argument("--live", action="store_true")
     doctor.add_argument("--all-models", action="store_true")
     doctor.add_argument("--concurrency", type=int, default=4)
     doctor.add_argument("--health-timeout", type=float, default=15.0)
     doctor.add_argument("--json", action="store_true")
 
-    add_prompt(commands.add_parser("decide"))
-    add_prompt(commands.add_parser("red-team"))
+    add_prompt(commands.add_parser("decide", help="run an evidence-backed decision council"))
+    add_prompt(commands.add_parser("red-team", help="run adversarial analysis"))
 
-    review = commands.add_parser("review")
+    review = commands.add_parser("review", help="review a selected Git change")
     review.add_argument("--repo", required=True)
     target = review.add_mutually_exclusive_group()
     target.add_argument("--base")
@@ -123,7 +134,7 @@ def parser() -> argparse.ArgumentParser:
     target.add_argument("--working-tree", action="store_true")
     add_common(review)
 
-    implement = commands.add_parser("implement")
+    implement = commands.add_parser("implement", help="compare isolated implementations")
     implement.add_argument("--repo", required=True)
     implement.add_argument("--base", default="HEAD")
     implement.add_argument("--task-file")
@@ -136,21 +147,21 @@ def parser() -> argparse.ArgumentParser:
     implement.add_argument("--worker-timeout", type=int, default=900)
     add_common(implement)
 
-    show = commands.add_parser("show")
+    show = commands.add_parser("show", help="inspect a stored run or artifact")
     show.add_argument("run_id")
     show.add_argument("--artifact")
     show.add_argument("--json", action="store_true")
 
-    replay = commands.add_parser("replay")
+    replay = commands.add_parser("replay", help="replay a stored run")
     replay.add_argument("run_id")
     add_common(replay)
 
-    revisit = commands.add_parser("revisit")
+    revisit = commands.add_parser("revisit", help="continue a run with corrected evidence")
     revisit.add_argument("run_id")
     revisit.add_argument("--correction", required=True)
     add_common(revisit)
 
-    outcome = commands.add_parser("outcome")
+    outcome = commands.add_parser("outcome", help="record an observed run outcome")
     outcome.add_argument("run_id")
     outcome.add_argument(
         "status", choices=["confirmed", "disconfirmed", "mixed", "unknown"]
@@ -164,7 +175,7 @@ def parser() -> argparse.ArgumentParser:
     outcome.add_argument("--receipt", action="append", default=[])
     outcome.add_argument("--json", action="store_true")
 
-    anchors = commands.add_parser("anchors")
+    anchors = commands.add_parser("anchors", help="manage calibration anchors")
     anchor_commands = anchors.add_subparsers(dest="anchor_cmd", required=True)
     anchor_import = anchor_commands.add_parser("import")
     anchor_import.add_argument("file")
@@ -178,15 +189,15 @@ def parser() -> argparse.ArgumentParser:
     anchor_retire.add_argument("anchor_id")
     anchor_retire.add_argument("--json", action="store_true")
 
-    regrade = commands.add_parser("regrade")
+    regrade = commands.add_parser("regrade", help="regrade a run without altering evidence")
     regrade.add_argument("run_id")
     regrade.add_argument("--rules", required=True)
     regrade.add_argument("--json", action="store_true")
 
-    stats = commands.add_parser("stats")
+    stats = commands.add_parser("stats", help="summarize observed outcomes")
     stats.add_argument("--json", action="store_true")
 
-    apply_parser = commands.add_parser("apply")
+    apply_parser = commands.add_parser("apply", help="apply an accepted implementation patch")
     apply_parser.add_argument("run_id")
     apply_parser.add_argument("--repo", default=".")
     return root
@@ -266,12 +277,8 @@ def format_result(result: ProtocolResult, as_json: bool) -> str:
 async def doctor_command(
     args: argparse.Namespace,
 ) -> tuple[list[Any], list[Any], dict[str, Any] | None]:
-    settings = ProxySettings(
-        Path(os.environ["CCYPROXY_CONFIG"])
-        if os.environ.get("CCYPROXY_CONFIG")
-        else None
-    )
-    transport = ProxyTransport(settings)
+    settings = ProxySettings()
+    transport = ProxyTransport(settings, sync_state_root=STATE / "v4")
     try:
         catalogue = await transport.catalogue()
         sync = (
@@ -367,12 +374,8 @@ async def doctor_command(
 
 
 async def sync_command(args: argparse.Namespace) -> int:
-    settings = ProxySettings(
-        Path(os.environ["CCYPROXY_CONFIG"])
-        if os.environ.get("CCYPROXY_CONFIG")
-        else None
-    )
-    transport = ProxyTransport(settings)
+    settings = ProxySettings()
+    transport = ProxyTransport(settings, sync_state_root=STATE / "v4")
     try:
         result = await transport.synchronize()
     finally:
@@ -443,7 +446,16 @@ def print_models(
 
 
 def open_store(run_id: str) -> RunStore:
-    return RunStore.open_existing(STATE, run_id, SecretGuard())
+    root = locate_run_root(STATE, run_id)
+    return RunStore.open_existing(root, run_id, SecretGuard())
+
+
+def require_writable_canonical_store(store: RunStore) -> None:
+    if store.root != STATE.expanduser().resolve():
+        raise RuntimeError(
+            "legacy runs are read-only; wait for the run to complete and rerun "
+            "Reason Assembly to import it before recording an outcome"
+        )
 
 
 def load_v4_run(run_id: str) -> tuple[RunStore, RunManifest]:
@@ -486,8 +498,13 @@ def regrade_command(args: argparse.Namespace) -> RunManifest:
     parent_store, parent = load_v4_run(args.run_id)
     rules_path = Path(args.rules).expanduser().resolve()
     rules = ReportingRules.model_validate(json.loads(rules_path.read_text()))
-    child_id = new_run_id()
-    child_store = RunStore(STATE, child_id, SecretGuard())
+    child_store = RunStore.create_unique(
+        STATE,
+        SecretGuard(),
+        new_run_id,
+        collision_roots=compatible_state_roots(STATE),
+    )
+    child_id = child_store.run_id
     preserved = {}
     for name in parent_store.artifact_names():
         if name.startswith("private/") or name in {"manifest.json", "events.jsonl"}:
@@ -729,6 +746,7 @@ async def revisit_command(args: argparse.Namespace) -> ProtocolResult:
 
 def outcome_command(args: argparse.Namespace) -> Outcome:
     store, manifest = load_v4_run(args.run_id)
+    require_writable_canonical_store(store)
     if store._target("outcome.json").exists():
         raise RuntimeError(
             "outcome is already recorded; use revisit for corrected evidence"
@@ -1120,13 +1138,9 @@ def stats_command() -> dict[str, Any]:
         "mode": [],
     }
     runs = 0
-    root = STATE / "runs"
-    if not root.exists():
-        return {name: {} for name in dimensions}
-    for path in sorted(root.iterdir()):
-        if not path.is_dir():
-            continue
-        store, manifest = load_v4_run(path.name)
+    run_roots = iter_run_roots(STATE)
+    for run_id, _root in run_roots:
+        store, manifest = load_v4_run(run_id)
         try:
             outcome = Outcome.model_validate(store.read_json("outcome.json"))
         except (OSError, ValidationError):
@@ -1377,6 +1391,13 @@ async def async_main(args: argparse.Namespace) -> ProtocolResult | int | None:
 def main() -> None:
     args = parser().parse_args()
     try:
+        migration = prepare_state_root(STATE)
+        if migration.errors:
+            print(
+                f"{CANONICAL_CLI}: warning: legacy state import encountered "
+                f"{len(migration.errors)} skipped entries; read-only discovery remains active",
+                file=sys.stderr,
+            )
         if args.cmd == "show":
             show_command(args)
             return
@@ -1426,16 +1447,18 @@ def main() -> None:
         ValueError,
     ) as error:
         try:
-            settings = ProxySettings(
-                Path(os.environ["CCYPROXY_CONFIG"])
-                if os.environ.get("CCYPROXY_CONFIG")
-                else None
-            )
+            settings = ProxySettings()
             message = SecretGuard(settings.exact_secrets).redact_text(str(error))
         except BaseException:
             message = SecretGuard().redact_text(str(error))
-        print(f"ccycouncil: {message}", file=sys.stderr)
+        print(f"{CANONICAL_CLI}: {message}", file=sys.stderr)
         raise SystemExit(2)
+
+
+def legacy_main() -> None:
+    if os.environ.get("REASON_ASSEMBLY_SUPPRESS_DEPRECATION") != "1":
+        print(f"{LEGACY_CLI} is deprecated; use {CANONICAL_CLI} instead.", file=sys.stderr)
+    main()
 
 
 if __name__ == "__main__":

@@ -6,18 +6,21 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from artifacts import RunStore, SecretGuard
 from conftest import FakeTransport
 from contracts import CandidateSummary, CommandReceipt, Contribution, WorkerReceipt
+from identity import EPHEMERAL_KEY_ENV, LEGACY_EPHEMERAL_KEY_ENV
 from git_worker import (
     ImplementationEngine,
     ImplementationRequest,
     apply_run,
     contribution_selection_issues,
     git,
+    invoke_codex,
     pack_patch,
     parse_codex_events,
     resolve_base,
@@ -77,16 +80,52 @@ print(json.dumps({"item":{"type":"agent_message","text":message}}))
     return script
 
 
+def test_codex_worker_exports_canonical_and_legacy_ephemeral_keys(
+    tmp_path, fake_settings, monkeypatch
+):
+    captured: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["env"] = kwargs["env"]
+        codex_home = Path(kwargs["env"]["CODEX_HOME"])
+        captured["config"] = (codex_home / "config.toml").read_text()
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    route = SimpleNamespace(
+        model="gpt-5.6-sol",
+        effort="medium",
+        capability=SimpleNamespace(context_window=200_000),
+    )
+
+    exit_code, output, timed_out = invoke_codex(
+        tmp_path,
+        route,
+        fake_settings,
+        "Inspect compatibility environment.",
+        30,
+    )
+
+    assert (exit_code, output, timed_out) == (0, "", False)
+    env = captured["env"]
+    assert isinstance(env, dict)
+    assert env[EPHEMERAL_KEY_ENV] == fake_settings.api_key
+    assert env[LEGACY_EPHEMERAL_KEY_ENV] == fake_settings.api_key
+    assert f'env_key = "{EPHEMERAL_KEY_ENV}"' in captured["config"]
+    assert LEGACY_EPHEMERAL_KEY_ENV not in captured["config"]
+
+
 def test_test_command_preserves_the_authorized_path(tmp_path, monkeypatch):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    command = bin_dir / "ccycouncil-test-command"
+    command = bin_dir / "reason-assembly-test-command"
     command.write_text("#!/bin/sh\nexit 0\n")
     command.chmod(0o755)
     monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ["PATH"])
 
     receipt = run_test_command(
-        tmp_path, "ccycouncil-test-command", 30, "test"
+        tmp_path, "reason-assembly-test-command", 30, "test"
     )
 
     assert receipt.exit_code == 0
@@ -318,7 +357,9 @@ async def test_disposable_repo_candidate_fusion_cleanup_and_apply_paths(
     assert all(item["baseline_proven"] and item["final_proven"] for item in receipts)
     if action == "reject":
         assert result.manifest.final_commit is None
-        assert not git(repo, "branch", "--list", f"ccycouncil/{result.run_id}/*").stdout
+        assert not git(
+            repo, "branch", "--list", f"reason-assembly/{result.run_id}/*"
+        ).stdout
         return
     assert result.manifest.final_commit
     assert result.manifest.final_branch

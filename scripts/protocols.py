@@ -75,6 +75,7 @@ from routing import (
     shuffled_labels,
     stable_claim_id,
 )
+from state_compat import compatible_state_roots, resolve_state_root
 from transport import (
     CallBudget,
     CallBudgetExceeded,
@@ -110,7 +111,7 @@ from v4 import (
 from v4_state import AnchorStore, RouteEpochStore, initialize_v4_state
 
 
-STATE = Path("~/.local/state/ccycouncil").expanduser()
+STATE = resolve_state_root()
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -266,14 +267,15 @@ class CouncilEngine:
     ):
         self.request = request
         self.state = state.expanduser().resolve()
-        self.settings = settings or ProxySettings(
-            Path(os.environ["CCYPROXY_CONFIG"])
-            if os.environ.get("CCYPROXY_CONFIG")
-            else None
-        )
+        self.settings = settings or ProxySettings()
         self.guard = SecretGuard(self.settings.exact_secrets)
-        self.run_id = new_run_id()
-        self.store = RunStore(self.state, self.run_id, self.guard)
+        self.store = RunStore.create_unique(
+            self.state,
+            self.guard,
+            new_run_id,
+            collision_roots=compatible_state_roots(self.state),
+        )
+        self.run_id = self.store.run_id
         combined = (
             request.prompt + "\n" + "\n".join(value for _, value in request.contexts)
         )
@@ -282,7 +284,11 @@ class CouncilEngine:
         )
         cap = request.max_calls or BUDGET_CAPS[self.budget_name]
         self.budget = CallBudget(cap, self.store)
-        self.transport = transport_factory(self.settings, budget=self.budget)
+        self.transport = transport_factory(
+            self.settings,
+            budget=self.budget,
+            sync_state_root=self.state / "v4",
+        )
         self.inventory = EvidenceInventory()
         self.inventory.add("task", request.prompt, kind="task", priority=100)
         for source, content in request.contexts:

@@ -1,28 +1,38 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, Mapping
 
 import httpx
 import yaml
 
 from artifacts import RunStore
-from catalogue_sync import (
-    DEFAULT_SYNC_STATE,
-    CatalogueSyncResult,
-    SyncReport,
-    synchronize_catalogue,
-)
+from catalogue_sync import CatalogueSyncResult, SyncReport, synchronize_catalogue
 from contracts import BudgetEvent, ModelCapability
+from identity import (
+    PROXY_ADAPTER_CONFIG_ENV,
+    PROXY_CONFIG_ENV,
+    SESSION_NAMESPACE,
+    USER_AGENT,
+)
+from state_compat import resolve_state_root
 
 
 DEFAULT_CONFIG = Path(
     "~/Library/Application Support/AIUsage/CLIProxyAPI/config.yaml"
 ).expanduser()
-USER_AGENT = "ccycouncil/0.4.1"
+
+
+def proxy_config_path_from_env(
+    environ: Mapping[str, str] | None = None,
+) -> Path:
+    values = os.environ if environ is None else environ
+    configured = values.get(PROXY_CONFIG_ENV) or values.get(PROXY_ADAPTER_CONFIG_ENV)
+    return Path(configured).expanduser() if configured else DEFAULT_CONFIG
 
 
 class ProxyCallError(RuntimeError):
@@ -45,7 +55,7 @@ class CallBudgetExceeded(RuntimeError):
 
 class ProxySettings:
     def __init__(self, path: Path | None = None):
-        self.path = (path or DEFAULT_CONFIG).expanduser()
+        self.path = (path or proxy_config_path_from_env()).expanduser()
         raw = yaml.safe_load(self.path.read_text()) or {}
         host = raw.get("host") or "127.0.0.1"
         if host in {"0.0.0.0", "::"}:
@@ -392,12 +402,12 @@ class ProxyTransport:
         budget: CallBudget | None = None,
         client: httpx.AsyncClient | None = None,
         timeout: float = 120,
-        sync_state_root: Path = DEFAULT_SYNC_STATE,
+        sync_state_root: Path | None = None,
         sync_warning_sink: Callable[[str], None] | None = None,
     ):
         self.settings = settings
         self.budget = budget
-        self.sync_state_root = Path(sync_state_root)
+        self.sync_state_root = Path(sync_state_root or (resolve_state_root() / "v4"))
         self.sync_warning_sink = sync_warning_sink
         self.last_sync: SyncReport | None = None
         self._owned_client = client is None
@@ -452,7 +462,7 @@ class ProxyTransport:
             "max_output_tokens": max_output_tokens,
             "reasoning": {"effort": effort},
         }
-        headers = {"X-Session-ID": f"ccycouncil:v4:{run_id}:{participant}"}
+        headers = {"X-Session-ID": f"{SESSION_NAMESPACE}:{run_id}:{participant}"}
         context_repacked = False
         while True:
             if self.budget:

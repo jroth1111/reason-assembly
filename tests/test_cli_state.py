@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-import ccycouncil
+import reason_assembly
 from conftest import FakeTransport
 from protocols import CouncilRequest, run_council
 from contracts import RouteRecord
@@ -40,7 +40,7 @@ async def test_replay_and_revisit_create_children_with_full_ancestry(
         settings=fake_settings,
         transport_factory=FakeTransport,
     )
-    monkeypatch.setattr(ccycouncil, "STATE", tmp_path)
+    monkeypatch.setattr(reason_assembly, "STATE", tmp_path)
 
     async def fake_run(request):
         return await run_council(
@@ -50,8 +50,8 @@ async def test_replay_and_revisit_create_children_with_full_ancestry(
             transport_factory=FakeTransport,
         )
 
-    monkeypatch.setattr(ccycouncil, "run_council", fake_run)
-    replay = await ccycouncil.replay_command(common_args(parent.run_id))
+    monkeypatch.setattr(reason_assembly, "run_council", fake_run)
+    replay = await reason_assembly.replay_command(common_args(parent.run_id))
     assert replay.run_id != parent.run_id
     assert replay.manifest.mode == "replay"
     assert replay.manifest.parent_run_id == parent.run_id
@@ -59,10 +59,10 @@ async def test_replay_and_revisit_create_children_with_full_ancestry(
 
     revisit_args = common_args(parent.run_id)
     revisit_args.correction = "The supporting note is now authoritative."
-    revisit = await ccycouncil.revisit_command(revisit_args)
+    revisit = await reason_assembly.revisit_command(revisit_args)
     assert revisit.manifest.mode == "revisit"
     assert revisit.manifest.parent_run_id == parent.run_id
-    store, _ = ccycouncil.load_v4_run(revisit.run_id)
+    store, _ = reason_assembly.load_v4_run(revisit.run_id)
     assert store._target("revisit-report.json").exists()
 
 
@@ -98,7 +98,7 @@ def test_route_substitutions_align_by_role_not_list_position():
             parent.routes[1],
         ]
     )
-    assert ccycouncil.route_substitutions(parent, current) == [
+    assert reason_assembly.route_substitutions(parent, current) == [
         {
             "role": "proposer",
             "prior_model": "none",
@@ -108,7 +108,7 @@ def test_route_substitutions_align_by_role_not_list_position():
 
 
 def test_evidence_extractor_outcome_subjects_link_to_normalized_ledger_claims():
-    subjects = ccycouncil.extraction_subject_ids(
+    subjects = reason_assembly.extraction_subject_ids(
         {
             "claims": [
                 {
@@ -153,8 +153,8 @@ async def test_outcome_stats_and_show_private_boundary(
         settings=fake_settings,
         transport_factory=FakeTransport,
     )
-    monkeypatch.setattr(ccycouncil, "STATE", tmp_path)
-    outcome = ccycouncil.outcome_command(
+    monkeypatch.setattr(reason_assembly, "STATE", tmp_path)
+    outcome = reason_assembly.outcome_command(
         SimpleNamespace(
             run_id=result.run_id,
             status="confirmed",
@@ -166,15 +166,15 @@ async def test_outcome_stats_and_show_private_boundary(
         )
     )
     assert outcome.status == "confirmed"
-    store, manifest = ccycouncil.load_v4_run(result.run_id)
+    store, manifest = reason_assembly.load_v4_run(result.run_id)
     assert "outcome.json" in manifest.artifacts
-    stats = ccycouncil.stats_command()
+    stats = reason_assembly.stats_command()
     assert stats["runs_with_observed_outcomes"] == 1
     assert stats["routing_changed"] is False
     assert stats["mode"]["decide"]["observed_accuracy"] == 1.0
     assert stats["role"]["judge"]["observed_accuracy"] == 1.0
     with pytest.raises(RuntimeError, match="private"):
-        ccycouncil.show_command(
+        reason_assembly.show_command(
             SimpleNamespace(
                 run_id=result.run_id,
                 artifact="private/identity-map.json",

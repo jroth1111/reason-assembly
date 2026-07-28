@@ -33,7 +33,17 @@ from protocols import (
     clean_blockers,
 )
 from deliberation import deterministic_order, judgment_assessment
+from identity import (
+    BRANCH_NAMESPACE,
+    EPHEMERAL_KEY_ENV,
+    LEGACY_EPHEMERAL_KEY_ENV,
+    LOCAL_COMMIT_EMAIL,
+    LOCAL_COMMIT_NAME,
+    LOCAL_COMMIT_PREFIX,
+    PRODUCT_SLUG,
+)
 from routing import Route, shuffled_labels
+from state_compat import locate_run_root
 from transport import ProxySettings, ProxyTransport
 from verification import command_shell, snapshot_sources
 from v4 import (
@@ -258,7 +268,7 @@ def run_test_command(
 ) -> CommandReceipt:
     try:
         with tempfile.TemporaryDirectory(
-            prefix="ccycouncil-pycache-"
+            prefix=f"{PRODUCT_SLUG}-pycache-"
         ) as pycache:
             env = {
                 key: value
@@ -460,7 +470,7 @@ def _worker_config(route: Route, settings: ProxySettings, codex_home: Path) -> N
         "[model_providers.ccyproxy]\n"
         'name = "CLIProxyAPI"\n'
         f'base_url = "{settings.base_url}/v1"\n'
-        'env_key = "CCYCOUNCIL_EPHEMERAL_KEY"\n'
+        f'env_key = "{EPHEMERAL_KEY_ENV}"\n'
         'wire_api = "responses"\n'
         "[sandbox_workspace_write]\n"
         "network_access = false\n"
@@ -476,7 +486,7 @@ def invoke_codex(
     prompt: str,
     timeout: int,
 ) -> tuple[int, str, bool]:
-    codex_home = Path(tempfile.mkdtemp(prefix="ccycouncil-codex-"))
+    codex_home = Path(tempfile.mkdtemp(prefix=f"{PRODUCT_SLUG}-codex-"))
     os.chmod(codex_home, 0o700)
     _worker_config(route, settings, codex_home)
     env = {
@@ -497,7 +507,8 @@ def invoke_codex(
         {
             "HOME": str(codex_home),
             "CODEX_HOME": str(codex_home),
-            "CCYCOUNCIL_EPHEMERAL_KEY": settings.api_key,
+            EPHEMERAL_KEY_ENV: settings.api_key,
+            LEGACY_EPHEMERAL_KEY_ENV: settings.api_key,
         }
     )
     try:
@@ -789,7 +800,7 @@ class ImplementationEngine:
         self.worktrees.append(path)
 
     def add_final_worktree(self, path: Path) -> str:
-        branch = f"ccycouncil/{self.engine.run_id}/final"
+        branch = f"{BRANCH_NAMESPACE}/{self.engine.run_id}/final"
         git(
             self.repo,
             "worktree",
@@ -1477,7 +1488,9 @@ class ImplementationEngine:
                     if item.label in selected_component_labels
                 ]
                 integration_inputs = Path(
-                    tempfile.mkdtemp(prefix=".ccycouncil-input-", dir=final_path)
+                    tempfile.mkdtemp(
+                        prefix=f".{PRODUCT_SLUG}-input-", dir=final_path
+                    )
                 )
                 patch_paths = []
                 for item in valid:
@@ -1644,12 +1657,12 @@ class ImplementationEngine:
                     "-C",
                     str(final_path),
                     "-c",
-                    "user.name=ccycouncil",
+                    f"user.name={LOCAL_COMMIT_NAME}",
                     "-c",
-                    "user.email=ccycouncil@local",
+                    f"user.email={LOCAL_COMMIT_EMAIL}",
                     "commit",
                     "-m",
-                    f"ccycouncil: {contract.objective[:60]}",
+                    f"{LOCAL_COMMIT_PREFIX} {contract.objective[:60]}",
                 ],
                 text=True,
                 capture_output=True,
@@ -1743,7 +1756,8 @@ def apply_run(
     settings: ProxySettings | None = None,
 ) -> str:
     guard = SecretGuard(settings.exact_secrets) if settings else SecretGuard()
-    store = RunStore.open_existing(state, run_id, guard=guard)
+    run_root = locate_run_root(state, run_id)
+    store = RunStore.open_existing(run_root, run_id, guard=guard)
     manifest = store.read_json("manifest.json")
     if manifest.get("schema_version") != 4:
         raise RuntimeError("apply supports schema-v4 runs only")

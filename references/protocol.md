@@ -1,6 +1,6 @@
-# Model Council protocol — schema v4
+# Reason Assembly protocol — schema v4
 
-`ccycouncil` 0.4.1 accepts schema v4 only. It preserves API-only routing,
+`reason-assembly` 0.5.0 accepts schema v4 only. It preserves API-only routing,
 explicit invocation, isolated Git workers, and adaptive 12/30/60 call ceilings.
 
 Every catalogue load performs schema-v4 synchronization. It fetches raw

@@ -1,11 +1,6 @@
 #!/bin/sh
 set -eu
 
-if [ "${REASON_ASSEMBLY_SUPPRESS_DEPRECATION:-}" != "1" ]; then
-  printf '%s\n' \
-    'ccycouncil is deprecated; use reason-assembly instead.' >&2
-fi
-
 launcher=$0
 while [ -L "$launcher" ]; do
   link=$(readlink "$launcher")
@@ -16,4 +11,7 @@ while [ -L "$launcher" ]; do
 done
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$launcher")" && pwd)
-exec "$script_dir/reason-assembly" "$@"
+project_dir=$(dirname -- "$script_dir")
+
+exec uv run --quiet --project "$project_dir" \
+  python "$project_dir/scripts/reason_assembly.py" "$@"

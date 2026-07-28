@@ -19,12 +19,14 @@ import yaml
 from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 from artifacts import SecretGuard
+from identity import CANONICAL_CLI, METADATA_CLIENT_VERSION, PRODUCT_SLUG
+from state_compat import default_state_root
 from v4_state import PrivateJsonStore
 
 
 RAW_MODELS_ENDPOINT = "/v1/models"
-CAPABILITY_METADATA_ENDPOINT = "/v1/models?client_version=ccycouncil-v4"
-DEFAULT_SYNC_STATE = Path("~/.local/state/ccycouncil/v4").expanduser()
+CAPABILITY_METADATA_ENDPOINT = f"/v1/models?client_version={METADATA_CLIENT_VERSION}"
+DEFAULT_SYNC_STATE = default_state_root() / "v4"
 
 
 class AliasConfigurationError(RuntimeError):
@@ -360,7 +362,9 @@ def _write_atomic_config(
     value: bytes,
     original: os.stat_result,
 ) -> None:
-    temp = path.with_name(f".{path.name}.ccycouncil-{secrets.token_hex(6)}.tmp")
+    temp = path.with_name(
+        f".{path.name}.{PRODUCT_SLUG}-{secrets.token_hex(6)}.tmp"
+    )
     fd = os.open(
         temp,
         os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_CLOEXEC", 0),
@@ -790,7 +794,7 @@ async def synchronize_catalogue(
 
     sink = warning_sink or (
         lambda warning: print(
-            f"ccycouncil: warning: {warning}",
+            f"{CANONICAL_CLI}: warning: {warning}",
             file=sys.stderr,
         )
     )

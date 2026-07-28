@@ -24,6 +24,7 @@ from contracts import (
     VerificationReceipt,
     VerificationStep,
 )
+from identity import VERIFICATION_USER_AGENT
 
 
 MAX_SOURCE_BYTES = 5 * 1024 * 1024
@@ -136,7 +137,7 @@ async def fetch_source(
     http = client or httpx.AsyncClient(
         follow_redirects=False,
         timeout=10,
-        headers={"User-Agent": "ccycouncil-v4/0.4.1"},
+        headers={"User-Agent": VERIFICATION_USER_AGENT},
         cookies=None,
     )
     current = url
