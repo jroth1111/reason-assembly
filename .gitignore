@@ -36,7 +36,8 @@ secrets/
 *.p12
 *.pfx
 
-# ccycouncil private state and generated evidence
+# Reason Assembly private state and generated evidence
+.reason-assembly/
 .ccycouncil/
 state/
 runs/

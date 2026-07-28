@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v7
@@ -25,3 +25,20 @@ jobs:
       - run: uv run ruff check .
       - run: uv run pytest -q
       - run: uv run python -m compileall -q scripts tests
+      - run: sh -n bin/reason-assembly bin/ccycouncil
+      - name: Build and smoke-test wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv build --wheel --out-dir dist
+          wheel=$(printf '%s\n' dist/reason_assembly-0.5.0-*.whl)
+          test -f "$wheel"
+          uv venv --python "${{ matrix.python-version }}" .wheel-venv
+          uv pip install --python .wheel-venv/bin/python "$wheel"
+          test -f .wheel-venv/share/reason-assembly/SKILL.md
+          test -f .wheel-venv/share/reason-assembly/compat/model-council/SKILL.md
+          test -f .wheel-venv/share/reason-assembly/compat/model-council/agents/openai.yaml
+          test "$(.wheel-venv/bin/reason-assembly --version)" = "reason-assembly 0.5.0"
+          legacy_stderr=$(mktemp)
+          test "$(.wheel-venv/bin/ccycouncil --version 2>"$legacy_stderr")" = "reason-assembly 0.5.0"
+          grep -F "ccycouncil is deprecated; use reason-assembly instead." "$legacy_stderr"

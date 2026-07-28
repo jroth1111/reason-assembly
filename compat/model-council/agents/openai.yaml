@@ -1,0 +1,6 @@
+interface:
+  display_name: "Model Council (deprecated)"
+  short_description: "Deprecated compatibility alias for Reason Assembly"
+  default_prompt: "Use $model-council only for compatibility and delegate to $reason-assembly."
+policy:
+  allow_implicit_invocation: false

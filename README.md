@@ -1,6 +1,6 @@
-# ccycouncil
+# Reason Assembly
 
-`ccycouncil` is an evidence-backed, multi-model council for consequential
+`reason-assembly` is an evidence-backed, multi-model council for consequential
 decisions, adversarial review, code review, and competing implementation
 workflows. It runs explicitly against a local
 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)-compatible proxy,
@@ -20,7 +20,7 @@ catalogued model IDs it used.
 ## What problem it solves
 
 A majority vote among several language models can still be confidently wrong.
-`ccycouncil` instead treats a decision as an evidence process:
+`reason-assembly` instead treats a decision as an evidence process:
 
 - lock the task contract and rubric before seeing candidate answers;
 - use independent model roles and typed claims rather than one long group chat;
@@ -82,8 +82,8 @@ Pruning is membership-based, not health-based. The synchronizer:
 - preserves unrelated YAML text, comments, ownership, and private permissions;
 - uses an atomic replacement and never creates credential-bearing backups;
 - warns and continues if metadata, pruning, or receipt persistence fails; and
-- writes schema-v4, credential-free receipts below
-  `~/.local/state/ccycouncil/v4/`.
+- writes schema-v4, credential-free receipts below the configured Reason Assembly
+  state root (by default `~/.local/state/reason-assembly/v4/`).
 
 When metadata remains out of step after one retry, `/v1/models` is authoritative.
 Metadata-only entries are excluded. Raw-only entries remain visible as
@@ -92,7 +92,7 @@ while preserving an honest view of the proxy catalogue.
 
 ## Requirements
 
-- Python 3.11 or 3.12
+- Python 3.11 or newer (CI covers 3.11–3.13)
 - [`uv`](https://docs.astral.sh/uv/)
 - a POSIX shell (`zsh` is preferred; `/bin/sh` is the fallback)
 - a running CLIProxyAPI-compatible endpoint
@@ -117,24 +117,44 @@ export CCYPROXY_CONFIG=/path/to/config.yaml
 Clone the repository and install its locked dependencies:
 
 ```sh
-git clone https://github.com/jroth1111/ccycouncil.git
-cd ccycouncil
+git clone https://github.com/jroth1111/reason-assembly.git
+cd reason-assembly
 uv sync --locked --dev
-./bin/ccycouncil --version
+./bin/reason-assembly --version
 ```
 
 To make the command available from any directory, add the repository's `bin`
-directory to `PATH`, or symlink `bin/ccycouncil` into a directory already on
-`PATH`.
+directory to `PATH`, install the package with `uv tool install .`, or symlink
+`bin/reason-assembly` into a directory already on `PATH`.
+
+### Compatibility with ccycouncil 0.4.x
+
+`ccycouncil` remains as a deprecated forwarding command for explicit compatibility;
+new integrations should invoke `reason-assembly` directly. The deprecated command
+and `model-council` skill alias remain supported throughout 0.5.x; any removal will
+be announced in a future changelog. On first normal CLI use,
+Reason Assembly non-destructively copies missing legacy state from
+`~/.local/state/ccycouncil` into `~/.local/state/reason-assembly`. Only terminal,
+stable runs are published into the canonical tree. Incomplete or subsequently
+changed legacy runs remain available through read-only discovery instead of being
+merged or shadowed. Existing non-imported canonical runs win whole-run ID collisions.
+
+Canonical environment variables are `REASON_ASSEMBLY_STATE`,
+`REASON_ASSEMBLY_PROXY_CONFIG`, and `REASON_ASSEMBLY_EPHEMERAL_KEY`. The legacy
+`CCYCOUNCIL_STATE` and `CCYCOUNCIL_EPHEMERAL_KEY` names remain accepted during the
+compatibility window; `CCYPROXY_CONFIG` remains accepted as the proxy adapter's own
+configuration variable. A custom `REASON_ASSEMBLY_STATE` is isolated from the
+default legacy tree unless `CCYCOUNCIL_STATE` is also set explicitly for a controlled
+compatibility import.
 
 ## Start with the proxy audit
 
 ```sh
-ccycouncil sync
-ccycouncil sync --json
-ccycouncil models
-ccycouncil doctor --all-models
-ccycouncil doctor --all-models --live --json
+reason-assembly sync
+reason-assembly sync --json
+reason-assembly models
+reason-assembly doctor --all-models
+reason-assembly doctor --all-models --live --json
 ```
 
 `sync --json` reports raw, metadata, and council counts and equality; alias
@@ -152,9 +172,9 @@ catalogue before selecting it.
 Provide a prompt directly or from a file:
 
 ```sh
-ccycouncil decide "Choose a migration strategy for this service"
+reason-assembly decide "Choose a migration strategy for this service"
 
-ccycouncil decide \
+reason-assembly decide \
   --prompt-file task.md \
   --context architecture.md \
   --source https://example.invalid/design \
@@ -162,7 +182,7 @@ ccycouncil decide \
   --budget standard \
   --json
 
-ccycouncil red-team \
+reason-assembly red-team \
   "Find the strongest failure modes in this launch plan" \
   --budget quick
 ```
@@ -172,7 +192,7 @@ are 12, 30, and 60 for the named fixed budgets; `--max-calls` is authoritative
 when supplied. Add explicit route overrides with:
 
 ```sh
-ccycouncil decide "..." --route proposer=model-id:high
+reason-assembly decide "..." --route proposer=model-id:high
 ```
 
 Use `--source` only for HTTPS sources. `--verify-command` runs a command you
@@ -183,11 +203,11 @@ explicitly authorize; review it with the same care as any other shell command.
 `review` operates on an explicit Git target:
 
 ```sh
-ccycouncil review --repo /path/to/repo --working-tree
-ccycouncil review --repo /path/to/repo --staged
-ccycouncil review --repo /path/to/repo --base main
-ccycouncil review --repo /path/to/repo --range main..feature
-ccycouncil review --repo /path/to/repo --commit abc1234
+reason-assembly review --repo /path/to/repo --working-tree
+reason-assembly review --repo /path/to/repo --staged
+reason-assembly review --repo /path/to/repo --base main
+reason-assembly review --repo /path/to/repo --range main..feature
+reason-assembly review --repo /path/to/repo --commit abc1234
 ```
 
 The council packages the selected diff, asks independent reviewers to produce
@@ -213,14 +233,14 @@ flowchart TD
     E --> F[Integrator candidate]
     F --> G[Acceptance checks]
     G --> H{semantic_commit?}
-    H -->|yes| I[Eligible for ccycouncil apply]
+    H -->|yes| I[Eligible for reason-assembly apply]
     H -->|no| J[Abort; preserve evidence]
 ```
 
 Example:
 
 ```sh
-ccycouncil implement \
+reason-assembly implement \
   --repo /path/to/repo \
   --base main \
   --task-file task.md \
@@ -232,7 +252,7 @@ ccycouncil implement \
 the accepted patch to the requested repository but does not commit or push:
 
 ```sh
-ccycouncil apply RUN_ID --repo /path/to/repo
+reason-assembly apply RUN_ID --repo /path/to/repo
 ```
 
 Always inspect the resulting diff and rerun the repository's acceptance checks.
@@ -240,21 +260,21 @@ Always inspect the resulting diff and rerun the repository's acceptance checks.
 ## Runs, replay, outcomes, and calibration
 
 Run artifacts are private by default under
-`~/.local/state/ccycouncil/runs/`. Useful commands include:
+`~/.local/state/reason-assembly/runs/`. Useful commands include:
 
 ```sh
-ccycouncil show RUN_ID
-ccycouncil show RUN_ID --artifact verdict.json --json
-ccycouncil replay RUN_ID
-ccycouncil revisit RUN_ID --correction "What changed and why"
-ccycouncil outcome RUN_ID correct --notes "Observed in production"
-ccycouncil regrade RUN_ID --rules grading-rules.json
-ccycouncil stats --json
+reason-assembly show RUN_ID
+reason-assembly show RUN_ID --artifact verdict.json --json
+reason-assembly replay RUN_ID
+reason-assembly revisit RUN_ID --correction "What changed and why"
+reason-assembly outcome RUN_ID confirmed --notes "Observed in production"
+reason-assembly regrade RUN_ID --rules grading-rules.json
+reason-assembly stats --json
 
-ccycouncil anchors import anchors.json
-ccycouncil anchors list --active
-ccycouncil anchors validate
-ccycouncil anchors retire ANCHOR_ID
+reason-assembly anchors import anchors.json
+reason-assembly anchors list --active
+reason-assembly anchors validate
+reason-assembly anchors retire ANCHOR_ID
 ```
 
 Artifacts include task contracts, routing, typed claims, verification receipts,
@@ -273,8 +293,18 @@ The repository is also a distributable Codex-style skill:
   [`references/provenance.md`](references/provenance.md) document the design
   basis and source provenance.
 
-The skill requires explicit invocation: ask to run `ccycouncil` or invoke the
-installed `model-council` skill. It must not be triggered implicitly.
+Install the cloned repository as the canonical skill directory, then link its
+self-contained compatibility alias if an older integration still invokes it:
+
+```sh
+ln -s /path/to/reason-assembly "$HOME/.agents/skills/reason-assembly"
+ln -s reason-assembly/compat/model-council "$HOME/.agents/skills/model-council"
+```
+
+Python wheels also carry these skill payloads below `share/reason-assembly/`.
+The skill requires explicit invocation: ask to run `reason-assembly` or invoke the
+installed `reason-assembly` skill. `$model-council` remains an explicit deprecated
+alias during 0.5.x. Neither skill may be triggered implicitly.
 
 ## What must never be committed
 

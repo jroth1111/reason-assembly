@@ -1,17 +1,17 @@
 # Contributing
 
-Thank you for helping improve `ccycouncil`.
+Thank you for helping improve `reason-assembly`.
 
 ## Development setup
 
 ```sh
-git clone https://github.com/jroth1111/ccycouncil.git
-cd ccycouncil
+git clone https://github.com/jroth1111/reason-assembly.git
+cd reason-assembly
 uv sync --locked --dev
 uv run pytest -q
 ```
 
-Use Python 3.11 or 3.12. Keep changes focused and add tests for behavior changes.
+Use Python 3.11 or newer; CI covers 3.11 through 3.13. Keep changes focused and add tests for behavior changes.
 Before opening a pull request, run:
 
 ```sh

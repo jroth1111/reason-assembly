@@ -7,11 +7,12 @@ import re
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from pydantic import BaseModel
 
 from contracts import EvidenceRef
+from state_compat import exclusive_state_lock
 
 
 SECRET_PATTERNS = [
@@ -130,6 +131,37 @@ class RunStore:
         (self.path / "private").mkdir(mode=0o700)
 
     @classmethod
+    def create_unique(
+        cls,
+        root: Path,
+        guard: SecretGuard,
+        run_id_factory: Callable[[], str],
+        *,
+        collision_roots: Iterable[Path] = (),
+        max_attempts: int = 16,
+    ) -> "RunStore":
+        root = root.expanduser().resolve()
+        visible_roots = {
+            candidate.expanduser().resolve() for candidate in collision_roots
+        }
+        visible_roots.add(root)
+        with exclusive_state_lock(root):
+            for _ in range(max_attempts):
+                run_id = run_id_factory()
+                if any(
+                    os.path.lexists(candidate / "runs" / run_id)
+                    for candidate in visible_roots
+                ):
+                    continue
+                try:
+                    return cls(root, run_id, guard)
+                except FileExistsError:
+                    continue
+        raise RuntimeError(
+            f"could not reserve a unique run ID after {max_attempts} attempts"
+        )
+
+    @classmethod
     def open_existing(cls, root: Path, run_id: str, guard: SecretGuard) -> "RunStore":
         instance = object.__new__(cls)
         instance.root = root.expanduser().resolve()
@@ -144,12 +176,16 @@ class RunStore:
         target = (self.path / relative).resolve()
         if self.path != target and self.path not in target.parents:
             raise RuntimeError("artifact path escapes the run directory")
+        return target
+
+    def _write_target(self, relative: str) -> Path:
+        target = self._target(relative)
         target.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
         os.chmod(target.parent, 0o700)
         return target
 
     def write_bytes(self, relative: str, value: bytes) -> Path:
-        target = self._target(relative)
+        target = self._write_target(relative)
         temp = target.with_name(f".{target.name}.{secrets.token_hex(6)}.tmp")
         fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
@@ -188,7 +224,7 @@ class RunStore:
         return self.write_text(relative, encoded + "\n")
 
     def append_event(self, kind: str, **data: Any) -> None:
-        target = self._target("events.jsonl")
+        target = self._write_target("events.jsonl")
         record = {
             "at": datetime.now(timezone.utc).isoformat(),
             "kind": kind,

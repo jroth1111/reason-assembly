@@ -1,6 +1,6 @@
 interface:
-  display_name: "Model Council"
-  short_description: "Run explicit multi-model councils and reviews"
-  default_prompt: "Use $model-council to run an evidence-backed decision council for this task."
+  display_name: "Reason Assembly"
+  short_description: "Run explicit evidence-backed agent councils and reviews"
+  default_prompt: "Use $reason-assembly to run an evidence-backed agent council for this task."
 policy:
   allow_implicit_invocation: false

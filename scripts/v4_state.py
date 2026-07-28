@@ -24,7 +24,7 @@ class PrivateJsonStore:
             raise RuntimeError(f"{self.path.name} is not schema v4")
         return data
 
-    def write(self, data: dict[str, Any]) -> None:
+    def _write_temp(self, data: dict[str, Any]) -> Path:
         self.path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
         os.chmod(self.path.parent, 0o700)
         temp = self.path.with_name(f".{self.path.name}.{secrets.token_hex(5)}")
@@ -34,11 +34,30 @@ class PrivateJsonStore:
                 json.dump(data, handle, sort_keys=True, separators=(",", ":"))
                 handle.flush()
                 os.fsync(handle.fileno())
+        except BaseException:
+            temp.unlink(missing_ok=True)
+            raise
+        return temp
+
+    def initialize(self, data: dict[str, Any]) -> bool:
+        temp = self._write_temp(data)
+        try:
+            try:
+                os.link(temp, self.path)
+            except FileExistsError:
+                return False
+            os.chmod(self.path, 0o600)
+            return True
+        finally:
+            temp.unlink(missing_ok=True)
+
+    def write(self, data: dict[str, Any]) -> None:
+        temp = self._write_temp(data)
+        try:
             os.replace(temp, self.path)
             os.chmod(self.path, 0o600)
         finally:
-            if temp.exists():
-                temp.unlink()
+            temp.unlink(missing_ok=True)
 
 
 class AnchorStore:
@@ -175,6 +194,4 @@ def initialize_v4_state(root: Path) -> None:
         "route-epochs.json": {"schema_version": 4, "epochs": []},
     }
     for name, default in defaults.items():
-        path = root / name
-        if not path.exists():
-            PrivateJsonStore(path, default).write(default)
+        PrivateJsonStore(root / name, default).initialize(default)
