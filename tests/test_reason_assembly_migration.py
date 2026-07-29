@@ -398,6 +398,25 @@ def test_v4_initialization_publishes_once_under_concurrency(tmp_path):
     assert store.read() == default
 
 
+def test_private_json_store_locked_write_preserves_concurrent_updates(tmp_path):
+    store = PrivateJsonStore(
+        tmp_path / "v4" / "calibration.json",
+        {"schema_version": 4, "examples": []},
+    )
+    store.initialize({"schema_version": 4, "examples": []})
+    workers = 8
+    barrier = Barrier(workers)
+
+    def append(index):
+        barrier.wait()
+        store.locked_write(lambda data: data["examples"].append(index))
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        list(executor.map(append, range(workers)))
+
+    assert sorted(store.read()["examples"]) == list(range(workers))
+
+
 def test_concurrent_v4_initialization_is_guarded(tmp_path):
     root = tmp_path / "v4"
     workers = 8
@@ -418,8 +437,11 @@ def test_concurrent_v4_initialization_is_guarded(tmp_path):
         "anchors.json",
         "route-epochs.json",
     }
-    assert {path.name for path in root.iterdir()} == expected
-    for path in root.iterdir():
+    names = {path.name for path in root.iterdir()}
+    assert expected <= names
+    assert {f"{name}.lock" for name in expected} <= names
+    for name in expected:
+        path = root / name
         assert isinstance(json.loads(path.read_text()), dict)
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
 

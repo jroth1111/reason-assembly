@@ -50,6 +50,7 @@ from routing import (
     build_claim_ledger,
     candidate_pool,
     gather_with_quorum,
+    load_routing_policy,
     normalize_hypothesis,
     parse_route_override,
     score_routes,
@@ -119,6 +120,25 @@ def test_budget_caps_and_greenfield_cli_semantics():
     )
 
 
+def test_routing_policy_loads_toml_and_env_without_catalogue_sync(tmp_path):
+    policy_path = tmp_path / "routing.toml"
+    policy_path.write_text(
+        'preferences = ["model-b", "model-a"]\n'
+        '[roles]\njudge = "judge-local:high"\nluna = "utility-local:low"\n'
+    )
+    policy = load_routing_policy(
+        tmp_path,
+        {
+            "REASON_ASSEMBLY_ROUTING_POLICY": str(policy_path),
+            "REASON_ASSEMBLY_INTEGRATOR_MODEL": "integrator-env:medium",
+        },
+    )
+    assert policy.preferences == ("model-b", "model-a")
+    assert policy.judge_model == "judge-local:high"
+    assert policy.luna_model == "utility-local:low"
+    assert policy.integrator_model == "integrator-env:medium"
+
+
 def test_candidate_pool_is_family_diverse_and_luna_excluded(tmp_path):
     selected = candidate_pool(CATALOGUE, [], budget="max", role="proposer")
     assert len({route.family for route in selected}) == len(selected)
@@ -162,6 +182,29 @@ def test_evidence_inventory_hash_pack_redaction_and_permissions(tmp_path):
     store.write_text("secret.txt", "Bearer test-secret")
     assert "test-secret" not in (store.path / "secret.txt").read_text()
     assert oct((store.path / "secret.txt").stat().st_mode & 0o777) == "0o600"
+
+
+def test_run_store_transaction_writes_manifest_last_and_guards_outcome(tmp_path, monkeypatch):
+    store = RunStore(tmp_path, "transaction", SecretGuard())
+    order = []
+    original = store.write_json
+
+    def tracked(relative, value):
+        order.append(relative)
+        return original(relative, value)
+
+    monkeypatch.setattr(store, "write_json", tracked)
+    store.write_transaction(
+        [("manifest.json", {"schema_version": 4}), ("outcome.json", {"status": "confirmed"})],
+        require_absent="outcome.json",
+    )
+    assert order == ["outcome.json", "manifest.json"]
+    assert ".run.lock" not in store.artifact_names()
+    with pytest.raises(RuntimeError, match="already recorded"):
+        store.write_transaction(
+            [("outcome.json", {"status": "mixed"})],
+            require_absent="outcome.json",
+        )
 
 
 def _hypothesis(label: str, recommendation: str, claim_text: str, evidence: str):

@@ -35,25 +35,14 @@ ccycouncil = "reason_assembly:legacy_main"
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-package-dir = {"" = "scripts"}
-py-modules = [
-  "artifacts",
-  "catalogue_sync",
-  "contracts",
-  "deliberation",
-  "git_worker",
-  "identity",
-  "protocols",
-  "reason_assembly",
-  "reliability",
-  "routing",
-  "state_compat",
-  "transport",
-  "v4",
-  "v4_state",
-  "verification",
-]
+[project.optional-dependencies]
+signing = ["cryptography>=42"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+reason_assembly = ["py.typed"]
 
 [tool.setuptools.data-files]
 "share/reason-assembly" = ["SKILL.md"]
@@ -70,12 +59,13 @@ py-modules = [
 
 [dependency-groups]
 dev = [
+  "hypothesis==6.138.13",
   "pytest==9.0.3",
   "ruff==0.15.13",
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["scripts"]
+pythonpath = ["src", "scripts"]
 testpaths = ["tests"]
 markers = ["asyncio: run an async test through the local pytest hook"]
 

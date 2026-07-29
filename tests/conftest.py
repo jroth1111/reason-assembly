@@ -394,6 +394,21 @@ class FakeTransport:
 
 
 @pytest.fixture
+def tmp_state_root(tmp_path):
+    root = tmp_path / "state"
+    root.mkdir()
+    return root
+
+
+@pytest.fixture
+def fake_codex(tmp_path):
+    executable = tmp_path / "fake-codex"
+    executable.write_text("#!/bin/sh\nprintf '%s\\n' '{\"type\":\"result\",\"result\":\"ok\"}'\n")
+    executable.chmod(0o755)
+    return executable
+
+
+@pytest.fixture
 def fake_settings():
     return SimpleNamespace(
         base_url="http://proxy.invalid",

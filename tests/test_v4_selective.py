@@ -29,6 +29,23 @@ from v4 import (
 from v4_state import AnchorStore, RouteEpochStore
 
 
+def test_provisional_bootstrap_is_low_risk_and_never_semantic():
+    provisional = selective_judgment(
+        scores_and_correct=[], score=0.9, judgment_risk=0.10,
+        high_risk=False, implementation=False, deterministic=False,
+        independently_verified=False, anchor_validated=True,
+    )
+    assert provisional.provisional
+    assert provisional.confidence_high == 0.5
+    certificate = finality_certificate(
+        task_kind="objective_answer", accepted=provisional.accepted,
+        selective=provisional, rubric_sha256="r", reporting_rules_sha256="p",
+        deterministic_receipts=[], independent_receipts=[],
+        qualified_families=["a", "b"], unresolved_claims=[],
+    )
+    assert certificate.finality == "verdict_commit"
+
+
 def signature(cluster: str, operation: str, tool: str) -> ApproachSignature:
     return ApproachSignature(
         decomposition=[f"decompose {operation}"],
