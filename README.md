@@ -66,7 +66,7 @@ The canonical role identifiers and responsibilities are:
 | `worker` | Create one isolated implementation candidate from the common contract. | Uses a disposable Git worktree and cannot alter another candidate. |
 | `test_constructor` | Construct or assess acceptance checks for implementation work. | Test quality is tracked separately and also contributes to worker reliability. |
 | `integrator` | Construct the final candidate from accepted contributions and rerun acceptance checks. | Integration is independently checked before implementation finality. |
-| `utility` | Estimate which bounded deliberation operation is most useful next. | May prioritize an operation only after activation; it cannot override safety, evidence, budget, or finality rules. |
+| `utility` | Reserved routing identity used for task-contract and claim-normalization support. | Adaptive operation choice itself is deterministic policy plus activated observational scores, not an autonomous planner. |
 
 Aggregation is a deterministic protocol responsibility rather than a canonical routed
 role. It applies the task-specific decision rule, reliability information, and dissent
@@ -83,9 +83,197 @@ vote to every problem.
 | **Evidence synthesis** | Source-tagged claim extraction, provenance, contradiction mapping, and coverage checks. | Fuse compatible supported claims while preserving uncertainty and source disagreement. | Retrieved instructions are quarantined as data; unsupported synthesis cannot become evidence. |
 | **Subjective / preference-sensitive decision** | Diverse proposals, explicit trade-offs, and pairwise comparison against a locked rubric. | Ranked pairs with dissent retained. | No claim of objective truth; stakeholder values must be supplied rather than invented. |
 | **Safety or high-consequence review** | Threat-focused proposals, qualified-family review, substantiated vetoes, and independent verification. | A supported blocker defeats a popularity result. | At least two qualified families; abstain when load-bearing uncertainty remains. |
-| **Code review** | Independent typed findings over an explicit Git scope, followed by verification and challenge. | Rank supported findings by severity and confidence; retain disputed findings. | Mechanical receipts dominate rhetoric; scope is never silently broadened. |
+| **Code review** | The common council pipeline over an explicit Git diff, with `task_kind=review`. | Verifier-weighted common judgment; no separate review-specific ranking engine is currently wired. | Authorized mechanical receipts dominate rhetoric; scope is never silently broadened. |
 | **Adversarial analysis** | Independent attack surfaces, rebuttal, and coherent-minority preservation. | Report supported failure modes and residual uncertainty, not a winner alone. | Novel minority claims receive defense and verification opportunities. |
 | **Competing implementation** | Isolated workers, deterministic acceptance checks, peer review, judging, and integration. | Contribution-aware selection followed by a separately verified integrated candidate. | Clean worktrees, explicit base and test contract, no application without `semantic_commit`. |
+
+## Composition cookbook: what works best, when
+
+There is no benchmark in this repository proving one model lineup universally best.
+“Most effective” below means the strongest composition supported by the current
+protocol for a stated task, budget, and failure mode. Recommendations use four evidence
+levels:
+
+| Level | Meaning |
+| --- | --- |
+| **Enforced invariant** | Code and tests enforce the behavior: for example family separation, mirrored order, deterministic checks, contribution completeness, or validator gates. |
+| **Adaptive empirical policy** | Activated outcome data may change routing or the next operation within a task/domain/route epoch. This is observational, not causal proof. |
+| **Recommended heuristic** | The order follows implemented failure-mode logic but has not won a comparative benchmark or ablation study. |
+| **Unsupported claim** | The project does not claim that more models, raw majority, same-family duplication, or any named provider is inherently superior. |
+
+### Fast decision guide
+
+| Task | Recommended composition and order | Budget | Useful diversity | Escalate when | Strongest evidence / finality |
+| --- | --- | --- | --- | --- | --- |
+| Low-risk, testable question | 2 family-distinct proposers → claims → verify unresolved load-bearing claims → mirrored judge | `quick` | 2 proposer families; judge may be reserved | testable conflict, missing evidence, or order inconsistency | deterministic receipt; otherwise guarded `verdict_commit` or abstention |
+| Complex objective decision | 3 family-distinct proposers → extraction/claims → verification, minority defense, or collapse recovery → mirrored judge → alternate-family judge if needed | `standard` | 3 families when available | unresolved conflict, novel minority, approach collapse, close ballots | receipts plus claim coverage and finality gates |
+| Subjective trade-off | proposers using different value decompositions → preserve conflicts → common mirrored judgment with ranked-pairs aggregation semantics → retain dissent | `standard` | distinct families and genuinely distinct rubrics | hidden stakeholder assumption or unstable pairwise preference | transparent rubric and dissent; no objective-truth claim |
+| Evidence synthesis | source extraction → independent synthesis proposals → claim ledger → critic/synthesis pass if conflict remains → contradiction-preserving judgment | `standard` or `max` | source and approach diversity, not model count alone | source contradiction, missing provenance, or unsupported fusion | source-linked claims and verification receipts |
+| High-risk or safety gate | family-diverse proposers → verification/risk analysis → mirrored judge → 2 non-judge validator families → at most 1 revision/revalidation cycle | `max` | at least 2 qualified validator families in addition to the judge family | any load-bearing uncertainty, veto, missing route, or failed validator | deterministic/independent evidence; otherwise `abort` |
+| Red-team | initial independent positions → attacks informed by them → defenses and updated positions informed by both sets → common judgment/finality | normally `standard` | family-diverse attack and defense perspectives | unresolved supported failure mode | fixed three-pass adversarial structure; ordinary adaptive rounds are disabled |
+| Code review | explicit Git diff → common independent proposals/claims → authorized checks where available → verifier-weighted common judgment | `standard` | family-distinct reviewers | disputed finding or checkable claim | diff-scoped receipts; no bespoke severity-ranking stage |
+| Competing implementation | family-distinct workers → candidate tests → conditional cyclic peer review → mirrored judge → optional cross-family tiebreak → select/integrate → graph gate → final tests → completion review(s) | `standard` or `max` | distinct worker families plus judge/reviewer family separation | overlapping patches, weak evidence, judge non-convergence, or incomplete graph | final engine-owned tests and independent completion review; `semantic_commit` only |
+
+### The most effective ordering principles
+
+These are more important than simply adding another model:
+
+1. **Lock the contract before generation.** A rubric written after seeing answers can
+   reward the preferred answer retroactively.
+2. **Generate in parallel before cross-exposure.** Independent proposals preserve more
+   useful disagreement than a sequential group chat where later models anchor on the
+   first response.
+3. **Separate prose from claims.** Extract source-linked, testable claims before asking a
+   judge to compare persuasive narratives.
+4. **Test conflicts before adding debate.** A deterministic check is usually cheaper and
+   stronger than two more critics arguing about a measurable fact.
+5. **Defend a coherent load-bearing minority before sampling more answers.** Extra
+   majority-like proposals can amplify a shared error.
+6. **Measure approach collapse before spending the reserve.** Different wording or model
+   IDs do not imply different decomposition, tools, evidence, or commitments.
+7. **Mirror candidate order before adding another judge.** The same judge seeing forward
+   and reversed order exposes position bias at lower family cost; a different-family
+   judge is reserved for non-convergence.
+8. **Use risk analysis before final validation.** Risk analysis expands the threat model;
+   validators then test the actual provisional verdict and blockers.
+9. **Integrate only complete, verified contributions.** Candidate-level quality does not
+   prove arbitrary patch fragments compose safely.
+10. **Rerun checks after integration.** Tests on source candidates do not establish that
+    the combined result works.
+
+### Normal council order
+
+The wired `decide` and `review` lifecycle is:
+
+```mermaid
+flowchart TD
+    A[Snapshot sources and proxy preflight] --> B[Infer task kind and lock contract]
+    B --> C[Route family-distinct proposers]
+    C --> D[Independent proposals]
+    D --> E[Extract and normalize claims]
+    E --> F[Ledger and approach profile]
+    F --> G[Authorized verification commands]
+    G --> H{Adaptive expansion available?}
+    H -->|verify| I[Verifier receipts]
+    H -->|minority| J[Minority defense then verification]
+    H -->|collapse| K[Alternate-route sample]
+    H -->|risk or critique| L[Risk analysis or targeted critics]
+    H -->|transition label| M[Proceed to judgment]
+    I --> H
+    J --> H
+    K --> H
+    L --> H
+    M --> N[Mirrored judgment]
+    N --> O[Alternate-family judge if close or inconsistent]
+    O --> P[Task aggregation and failure diagnosis]
+    P --> Q[High-risk validators if required]
+    Q --> R[Selective judgment and typed finality]
+```
+
+The total model-call ceilings are 12/30/60 for `quick`/`standard`/`max`.
+Within those ceilings, ordinary adaptive expansion is capped at 1/2/3 operations.
+`red-team` uses zero ordinary adaptive operations because it spends calls on its fixed
+attack/defense sequence. `--max-calls` overrides the normal total call ceiling.
+
+Task kind is inferred in this precedence: implementation; review; detected risk terms
+become `safety_gate`; compare/recommend/trade-off prompts become
+`subjective_tradeoff`; synthesize/research/evidence prompts become
+`evidence_synthesis`; everything else becomes `objective_answer`. The inferred kind
+changes aggregation and which adaptive branch is eligible.
+
+### Which adaptive labels actually call another model?
+
+The decision schema is broader than the set of separately executed stages:
+
+| Policy decision | Trigger | Current runtime effect | Extra model work |
+| --- | --- | --- | --- |
+| `verify` | testable conflict or missing load-bearing evidence | build a verification plan and collect verifier receipts | yes |
+| `minority_defense` | one coherent supporter for an unresolved load-bearing claim | defend the claim, then verify it when a step is available | yes |
+| `sample` | approach-level representational collapse | add one alternate-family proposal under an exclusion contract | yes |
+| `safety_validate` | safety task with blockers/conflicts | add a risk-analyst hypothesis, then proceed conservatively | yes |
+| `targeted_rebuttal` | unresolved non-testable conflict/missing evidence | call up to two family-distinct critic routes | yes |
+| `synthesize` | evidence-synthesis conflict | call critic routes with synthesis instructions | yes |
+| `blocked_escalation` | too few calls remain while material blockers persist | stop expansion and preserve blockers | no |
+| `stop`, `direct_judgment` | no useful expansion or learned utility is non-positive | proceed to common judgment | no |
+| `higher_order_aggregate`, `pairwise_compare`, `ranked_pairs` | task/policy chooses an aggregation transition | stop adaptive expansion and proceed to common mirrored judgment/aggregation | no distinct stage today |
+
+Operation choice is implemented policy in `choose_operation`: a fixed failure-mode
+priority may be replaced after activation by the highest observed task-scoped operation
+score. It is not an autonomous utility-model planner, and the observed score is not
+proof that the operation generalizes to new distributions.
+
+### Combination and order trade-offs
+
+| Combination | Prefer it when | Why the order matters | Current support / cost |
+| --- | --- | --- | --- |
+| Parallel proposers, then critique | solution space is uncertain | preserves independent hypotheses before anchoring | normal flow; proposer calls scale with council size |
+| Proposer → verifier | dispute is measurable | evidence can end the dispute without rhetorical expansion | first adaptive priority |
+| Proposer → critic → verifier | assumptions or threat model are incomplete | critic exposes a precise claim for the verifier to test | conditional; usually costs both a critic and verifier call |
+| Source extraction → proposals | retrieved evidence is central | all proposers receive the same structured source basis | normal flow when extraction succeeds |
+| Proposals → claim normalization | candidate claims need stable IDs/comparison | normalization prevents wording differences from fragmenting the ledger | normal flow when the normalization route is available |
+| Same judge mirrored twice | position bias is the main concern | reversing order isolates order sensitivity without changing evaluator | normal judging baseline |
+| Different-family tiebreak judge | mirrored ballots do not converge | adds evaluator diversity only after cheaper bias detection | conditional and budget-dependent |
+| Family-distinct ensemble | shared-family correlation is plausible | operational family separation is stronger than counting IDs | enforced selection heuristic; not proof of independence |
+| Direct candidate selection | one implementation is complete and best-supported | avoids integration risk and preserves a tested whole patch | supported `select` action |
+| Contribution integration | complementary verified work is needed | complete base first, then dependency-complete components | supported `integrate`; extra worker and final-test cost |
+| Conditional peer review | patches overlap, criteria are complementary, or verification is weak | review effort is spent only where cross-candidate information can change the result | implemented policy |
+| Minority defense → more sampling | one novel load-bearing claim exists | tests the existing dissent before flooding the ledger with more proposals | normal priority order |
+| Risk analysis → validators | the provisional threat model may be incomplete | validators assess the expanded ledger and provisional verdict | high-risk path |
+
+Manual `--route` overrides can reproduce some role combinations, but they cannot add a
+stage that the engine does not implement. Overrides should use distinct families where
+possible; repeatedly selecting one family reduces the value of a council even when the
+model IDs differ.
+
+### Budget recipes
+
+**Quick — cheapest defensible composition** *(recommended heuristic)*
+
+- two healthy proposer families when available;
+- one adaptive opportunity, normally verification before critique;
+- mirrored judgment;
+- use for bounded, low-risk tasks with a clear acceptance test.
+
+```sh
+reason-assembly decide "Compare these two reversible options" \
+  --budget quick \
+  --verify-command "python verify_inputs.py"
+```
+
+**Standard — default consequential composition** *(recommended heuristic plus enforced
+invariants)*
+
+- three proposer families when available;
+- up to two adaptive operations;
+- verification, minority defense, or collapse recovery before extra debate;
+- alternate-family judge only when mirrored ballots are close or inconsistent.
+
+```sh
+reason-assembly decide --prompt-file decision.md \
+  --context evidence.md \
+  --budget standard \
+  --route proposer=MODEL_A:medium \
+  --route proposer=MODEL_B:medium \
+  --route proposer=MODEL_C:medium
+```
+
+**Max — unresolved, high-complexity, or safety composition**
+
+- reserve alternate families for collapse recovery, validation, and tiebreaking;
+- up to three adaptive operations;
+- high-risk evidence and validator gates override convenience; missing qualified routes
+  produce abstention rather than a smaller pseudo-consensus.
+
+```sh
+reason-assembly decide --prompt-file launch-gate.md \
+  --context risk-register.md \
+  --verify-command "./run_acceptance_checks.sh" \
+  --budget max
+```
+
+`adaptive` selects `max` when risk terms are detected, `standard` for red-team,
+implementation, or large inputs, `quick` for short low-risk prompts, and otherwise
+`standard`.
 
 ## Family-aware routing
 
@@ -104,6 +292,10 @@ Routing ranks an eligible route with the implemented weighted score:
 ```text
 45% role fit + 30% reliability + 20% independence + 5% health latency
 ```
+
+These weights are policy constants, not fitted optima. Role fit also contains explicit
+model-ID substring heuristics plus capability checks; it is an operational routing rule,
+not benchmark proof that a named model is best for a role.
 
 The current independence component is fixed at `0.5`. Although `peer_models` is passed
 while filling multiple seats, the scorer does not use it, so learned pair independence
@@ -164,30 +356,22 @@ they do not establish causal independence or guarantee novel reasoning.
 
 ## Adaptive deliberation
 
-Budgets are ceilings, not targets. `adaptive` chooses the next operation according to
-the unresolved evidence state. During cold start, priority is:
+Budgets are ceilings, not targets. The policy evaluates the current claim ledger,
+approach profile, risk, evidence completeness, route reliability, verifier availability,
+and calls reserved for mandatory judging. During cold start it prefers: verify a
+testable conflict; defend load-bearing novelty; recover from approach collapse; apply
+task-specific safety/synthesis logic; then rebut unresolved non-testable ambiguity.
 
-1. verify a testable conflict;
-2. defend load-bearing novelty;
-3. recover from approach collapse with an exclusion contract;
-4. actively compare close candidates; and
-5. request targeted rebuttal for non-testable ambiguity.
+After 20 labeled outcomes, an operation-effect bucket may become active and replace the
+cold-start order with the highest value under its implemented observational score.
+That score is task-scoped and cost-adjusted; it is not a learned general planner and is
+not evidence that the selected operation is globally optimal. Call limits, family
+requirements, verification rules, and finality always remain authoritative.
 
-The deliberation decision schema enumerates `stop`, `direct_judgment`,
-`higher_order_aggregate`, `pairwise_compare`, `verify`, `sample`,
-`targeted_rebuttal`, `minority_defense`, `ranked_pairs`, `synthesize`,
-`safety_validate`, and `blocked_escalation`. Corresponding aggregation patterns are
-verifier-weighted selection, higher-order aggregation, ranked pairs, criterion
-integration, conservative veto, claim fusion, and mirrored pairwise comparison.
-
-After enough labeled task-operation outcomes, guarded posterior estimates of
-resolution utility may replace the cold-start order. The learned policy remains
-subordinate to call limits, family requirements, verification rules, and finality.
-Generic debate, unbounded group chat, and raw-majority correctness are not protocol
-stages or claims.
-
-Fixed budgets `quick`, `standard`, and `max` normally cap model calls at 12, 30, and
-60. An explicit `--max-calls` remains authoritative.
+See the cookbook tables above for the exact operation caps and the distinction between
+operations that execute a new model call and labels that transition directly to common
+judgment. Generic debate, unbounded group chat, and raw-majority correctness are not
+protocol stages or claims.
 
 ## Judging and aggregation
 
@@ -211,26 +395,78 @@ and coherent minority support. None is a substitute for missing decisive evidenc
 
 ## Competing implementation
 
-`implement` creates disposable Git worktrees from one explicit base and gives each
-worker the same task and acceptance contract. Candidate patches are tested, reviewed,
-and judged independently. The integrator may select or combine accepted contributions,
-but the integrated result is a new candidate and must pass acceptance checks itself.
+Implementation uses a separate composition optimized for patch provenance and
+post-composition verification:
+
+1. Lock one base commit, task, acceptance contract, verification mode, and test command.
+2. Route family-distinct workers and distribute acceptance-criterion focus round-robin.
+3. Give each route a disposable worktree; the same route acts as worker and
+   `test_constructor` for its candidate.
+4. Produce candidates in parallel and retain only candidates with valid engine-owned
+   receipts.
+5. Enable cyclic anonymous peer review only when candidates have complementary focus,
+   overlapping changed files, or weak verification. For three candidates the topology
+   is A→B, B→C, C→A.
+6. Ask the reserved implementation judge for forward and reversed ballots. If action
+   and selected candidate still disagree, use one different-family tiebreak judge when
+   the call reserve permits; otherwise reject.
+7. Apply one of three actions:
+   - `select`: keep the selected candidate as a complete patch and include all of its
+     contributions;
+   - `integrate`: apply one complete base candidate, then ask the integrator to add only
+     selected, verified, dependency-complete components from other candidates;
+   - `reject`: preserve evidence and stop without a final branch.
+8. Block selection/integration when contribution conflicts, missing dependencies, or
+   uncovered acceptance criteria remain.
+9. Rerun final tests and `git diff --check` on the selected or integrated result. A
+   non-documentation implementation cannot reach semantic finality without an explicit
+   deterministic test command.
+10. Require one independent completion review for ordinary work or two family-distinct
+    completion reviews for high-risk work, excluding the judge family.
+11. Create exactly one commit on the declared base and only then issue
+    `semantic_commit`.
 
 ```mermaid
 flowchart TD
-    A[Explicit repository, base, task, checks] --> B[Isolated worker worktrees]
-    B --> C1[Candidate A]
-    B --> C2[Candidate B]
-    B --> C3[Candidate C]
-    C1 --> D[Checks and typed evidence]
-    C2 --> D
-    C3 --> D
-    D --> E[Anonymous peer review and judging]
-    E --> F[Contribution-aware integration]
-    F --> G[Independent acceptance checks]
-    G --> H{semantic_commit?}
-    H -->|yes| I[Eligible for apply]
-    H -->|no| J[Abort and preserve evidence]
+    A[Base, contract, tests] --> B[Family-distinct worker worktrees]
+    B --> C[Parallel candidates and receipts]
+    C --> D{Peer review useful?}
+    D -->|yes| E[Cyclic anonymous peer review]
+    D -->|no| F[Mirrored implementation judge]
+    E --> F
+    F --> G{Converged?}
+    G -->|no| H[Different-family tiebreak or reject]
+    G -->|yes| I{select / integrate / reject}
+    H --> I
+    I -->|select| J[Complete selected patch]
+    I -->|integrate| K[Complete base plus verified components]
+    I -->|reject| L[Abort]
+    J --> M[Contribution graph gate]
+    K --> M
+    M --> N[Final deterministic tests]
+    N --> O[Completion review family or families]
+    O --> P[Exactly one semantic commit]
+```
+
+Use direct selection when one complete candidate already covers the contract; it is
+cheaper and avoids composition risk. Use integration only for complementary verified
+contributions whose dependencies and conflicts are explicit. Documentation-only
+changes may use docs verification mode; tested code requires an explicit test command.
+
+```sh
+reason-assembly implement \
+  --repo /path/to/repo \
+  --base main \
+  --task-file task.md \
+  --test-command "pytest -q" \
+  --worker-timeout 900
+
+# Documentation-only implementation composition
+reason-assembly implement \
+  --repo /path/to/repo \
+  --base main \
+  --task-file docs-task.md \
+  --verification-mode docs
 ```
 
 `apply` accepts only a completed implementation run carrying `semantic_commit`. It
@@ -269,12 +505,43 @@ Historical accuracy can improve routing and acceptance discipline, but observati
 calibration does not prove independence, eliminate distribution shift, or guarantee
 future correctness.
 
+Calibration can change composition only through guarded paths:
+
+- activated reliability changes the 30% reliability component of route ranking;
+- deterministic 20% exploration may seat a lower-ranked eligible route and collect
+  evidence about alternatives;
+- activated operation effects may change the next adaptive operation after 20 labeled
+  outcomes;
+- council-set co-failure affects confidence only after 30 ordinary or 60 high-risk
+  observations;
+- selective judgment needs at least 29 or 59 accepted examples for its 10% or 5%
+  regimes; and
+- route epochs and anchors prevent stale observations from silently governing a changed
+  catalogue or policy.
+
 Current implementation boundaries are explicit: learned pair independence does not
-change route selection; proposer–verifier `joint_failure` is not passed into the normal
-finality path; the `higher_order_select` helper is not called by normal orchestration;
-and provisional selective-judgment support derived from validated anchors exists as a
-helper but is not wired into the normal run flow. These mechanisms must not be inferred
-from persisted schemas or helper functions alone.
+change route selection; `peer_models` is unused by the scorer; proposer–verifier
+`joint_failure` is not passed into the normal finality path; the `higher_order_select`
+helper is not called by normal orchestration; and provisional selective-judgment support
+derived from validated anchors exists as a helper but is not wired into the normal run
+flow. These mechanisms must not be inferred from persisted schemas or helper functions
+alone.
+
+## Composition anti-patterns
+
+| Avoid | Why |
+| --- | --- |
+| Raw majority voting | Correlated models can repeat one persuasive error; evidence and blockers outrank popularity. |
+| Counting several IDs from one family as independent | Family labels are imperfect proxies, but same-family duplication is weaker than deliberate family separation. |
+| Showing later proposers the first answer | Sequential anchoring reduces the value of independent generation. |
+| Using the proposer as the only verifier and judge | Role separation reduces self-confirmation; high-risk validators must be non-judge families. |
+| Adding critics before running an available deterministic check | More language does not beat a reproducible receipt for a testable conflict. |
+| Treating different wording as different strategy | Use approach decomposition, tools, evidence, assumptions, and commitments to detect collapse. |
+| Eagerly peer-reviewing every patch | The implementation policy reserves peer review for complementary, overlapping, or weakly verified candidates. |
+| Integrating arbitrary patch fragments | Contributions must be verified, dependency-complete, conflict-free, and cover the contract. |
+| Trusting candidate tests after integration | The combined result must rerun engine-owned final checks. |
+| Forcing a verdict when family quorum, validators, or evidence are missing | The correct result is abstention or `abort`, not a smaller pseudo-consensus. |
+| Treating unit tests as proof of model accuracy gains | Tests establish protocol mechanics and invariants; this repository has no comparative model-composition benchmark. |
 
 ## Finality, taint, and run lifecycle
 

@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+- Add a practical multi-model composition cookbook covering effective task-specific
+  lineups, exact stage ordering, budget/risk recipes, implementation selection versus
+  integration, calibration-driven adaptation, and composition anti-patterns.
+- Distinguish routed roles, separately executed model stages, and policy/aggregation
+  labels that transition directly to common judgment.
+- Clarify that routing weights, role-fit heuristics, and observed operation effects are
+  protocol policies rather than benchmark-proven global optima, and that code review
+  currently uses the common council pipeline.
+
 ## 0.6.0 - 2026-07-29
 
 - Remove the retired compatibility command, skill identity, state import path, and
