@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -17,12 +18,15 @@ from identity import EPHEMERAL_KEY_ENV, LEGACY_EPHEMERAL_KEY_ENV
 from git_worker import (
     ImplementationEngine,
     ImplementationRequest,
+    SubprocessWorkerBackend,
+    WorkerUnavailableError,
     apply_run,
     contribution_selection_issues,
     git,
     invoke_codex,
     pack_patch,
     parse_codex_events,
+    preflight_worker,
     resolve_base,
     resolve_review_target,
     run_test_command,
@@ -62,6 +66,9 @@ def fake_codex(bin_dir: Path) -> Path:
     script.write_text(
         """#!/usr/bin/env python3
 import json, pathlib, sys
+if sys.argv[1:] == ["--version"]:
+    print("fake-codex 1.0")
+    raise SystemExit(0)
 prompt = sys.argv[-1]
 root = pathlib.Path.cwd()
 if "Create only a focused regression test patch" in prompt:
@@ -78,6 +85,20 @@ print(json.dumps({"item":{"type":"agent_message","text":message}}))
     )
     script.chmod(0o755)
     return script
+
+
+def test_worker_preflight_missing_and_custom_executable(tmp_path, fake_settings, monkeypatch):
+    fake_settings.worker_executable = "missing-reason-assembly-worker"
+    monkeypatch.setattr(shutil, "which", lambda executable: None)
+    with pytest.raises(WorkerUnavailableError, match="REASON_ASSEMBLY_WORKER"):
+        preflight_worker(fake_settings)
+
+    executable = tmp_path / "custom-worker"
+    executable.write_text("#!/bin/sh\n[ \"$1\" = --version ] && exit 0\nexit 1\n")
+    executable.chmod(0o755)
+    fake_settings.worker_executable = str(executable)
+    monkeypatch.setattr(shutil, "which", lambda configured: configured)
+    preflight_worker(fake_settings, SubprocessWorkerBackend())
 
 
 def test_codex_worker_exports_canonical_and_legacy_ephemeral_keys(

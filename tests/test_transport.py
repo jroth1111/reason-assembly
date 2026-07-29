@@ -10,6 +10,7 @@ from transport import (
     ProxyCallError,
     ProxyTransport,
     QuotaError,
+    RetryPolicy,
     merge_catalogues,
     provider_family,
 )
@@ -121,14 +122,14 @@ async def test_context_400_gets_one_coverage_repack_retry():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("status", "body", "error"),
+    ("status", "body", "error", "expected_calls"),
     [
-        (429, "quota", QuotaError),
-        (500, "broken", ProxyCallError),
-        (400, "invalid effort", ProxyCallError),
+        (429, "quota", QuotaError, 1),
+        (500, "broken", ProxyCallError, 3),
+        (400, "invalid effort", ProxyCallError, 1),
     ],
 )
-async def test_429_5xx_and_noncontext_400_are_not_retried(status, body, error):
+async def test_proxy_failure_classification(status, body, error, expected_calls):
     calls = 0
 
     def handler(request):
@@ -140,6 +141,7 @@ async def test_429_5xx_and_noncontext_400_are_not_retried(status, body, error):
         SimpleNamespace(base_url="http://x", api_key="k"),
         budget=CallBudget(2),
         client=client_with(handler),
+        retry_policy=RetryPolicy(base_delay=0, jitter=False),
     )
     with pytest.raises(error):
         await transport.ask(
@@ -150,12 +152,46 @@ async def test_429_5xx_and_noncontext_400_are_not_retried(status, body, error):
             prompt="x",
             stage="opinion",
         )
-    assert calls == 1
+    assert calls == expected_calls
+    assert transport.budget.used == 0
     await transport.client.aclose()
 
 
 @pytest.mark.asyncio
-async def test_timeout_is_not_retried():
+async def test_retry_success_charges_one_logical_call():
+    calls = 0
+    budget = CallBudget(1)
+
+    def handler(request):
+        nonlocal calls
+        calls += 1
+        if calls < 3:
+            return httpx.Response(503, text="busy")
+        return httpx.Response(200, json={"output_text": "OK", "usage": {}})
+
+    transport = ProxyTransport(
+        SimpleNamespace(base_url="http://x", api_key="k"),
+        budget=budget,
+        client=client_with(handler),
+        retry_policy=RetryPolicy(base_delay=0, jitter=False),
+    )
+    text, _ = await transport.ask(
+        run_id="r",
+        participant="p",
+        model="m",
+        effort="low",
+        prompt="x",
+        stage="opinion",
+    )
+    assert text == "OK"
+    assert calls == 3
+    assert budget.used == 1
+    assert len(budget.events) == 1
+    await transport.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_timeout_is_retried_without_budget_charge():
     calls = 0
 
     def handler(request):
@@ -167,6 +203,7 @@ async def test_timeout_is_not_retried():
         SimpleNamespace(base_url="http://x", api_key="k"),
         budget=CallBudget(2),
         client=client_with(handler),
+        retry_policy=RetryPolicy(base_delay=0, jitter=False),
     )
     with pytest.raises(ProxyCallError, match="timeout"):
         await transport.ask(
@@ -177,5 +214,6 @@ async def test_timeout_is_not_retried():
             prompt="x",
             stage="opinion",
         )
-    assert calls == 1
+    assert calls == 3
+    assert transport.budget.used == 0
     await transport.client.aclose()

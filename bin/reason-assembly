@@ -13,5 +13,6 @@ done
 script_dir=$(CDPATH= cd -- "$(dirname -- "$launcher")" && pwd)
 project_dir=$(dirname -- "$script_dir")
 
+# Source checkouts require uv; installed wheels provide a native console script.
 exec uv run --quiet --project "$project_dir" \
-  python "$project_dir/scripts/reason_assembly.py" "$@"
+  python -m reason_assembly "$@"

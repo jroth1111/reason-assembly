@@ -1,5 +1,6 @@
 # Python environments and bytecode
 .venv/
+.gate-venv/
 venv/
 env/
 __pycache__/
@@ -9,6 +10,7 @@ __pycache__/
 # Test, type-checking, lint, and coverage output
 .pytest_cache/
 .ruff_cache/
+.hypothesis/
 .mypy_cache/
 .pyright/
 .coverage
@@ -58,5 +60,7 @@ catalogue-sync-latest.json
 # Logs, temporary files, and operating-system metadata
 *.log
 *.tmp
+qa/*.raw.md
+qa/*-prompt.txt
 .DS_Store
 Thumbs.db

@@ -110,6 +110,7 @@ def test_command_verifier_scrubs_environment_hashes_and_times_out(
         kind="command",
         instruction="check",
         executor_input='test -z "$SHOULD_NOT_LEAK"',
+        shell=True,
     )
     receipt = run_command_verifier(step, cwd=tmp_path)
     assert receipt.status == "supported"
@@ -118,6 +119,43 @@ def test_command_verifier_scrubs_environment_hashes_and_times_out(
     timed = run_command_verifier(timeout, cwd=tmp_path, timeout=1)
     assert timed.status == "inconclusive"
     assert timed.timed_out
+
+
+def test_command_verifier_defaults_to_argv_and_shell_is_explicit(tmp_path):
+    marker = tmp_path / "should-not-exist"
+    argv_step = VerificationStep(
+        id="VS-ARGV",
+        claim_id="C-1",
+        kind="command",
+        instruction="check",
+        executor_input=f'printf %s "hello; touch {marker}"',
+    )
+    receipt = run_command_verifier(argv_step, cwd=tmp_path)
+    assert receipt.status == "supported"
+    assert not marker.exists()
+
+    shell_step = argv_step.model_copy(
+        update={"id": "VS-SHELL", "executor_input": "printf hello | grep hello", "shell": True}
+    )
+    shell_receipt = run_command_verifier(shell_step, cwd=tmp_path)
+    assert shell_receipt.status == "supported"
+
+
+def test_command_verifier_uses_configured_safe_path(tmp_path, monkeypatch):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    command = bin_dir / "verify-local"
+    command.write_text("#!/bin/sh\nprintf configured")
+    command.chmod(0o755)
+    monkeypatch.setenv("REASON_ASSEMBLY_VERIFY_PATH", str(bin_dir))
+    step = VerificationStep(
+        id="VS-PATH",
+        claim_id="C-1",
+        kind="command",
+        instruction="check",
+        executor_input="verify-local",
+    )
+    assert run_command_verifier(step, cwd=tmp_path).observation == "configured"
 
 
 def test_calculation_allowlist_and_verification_plan():
