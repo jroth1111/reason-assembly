@@ -606,6 +606,8 @@ class CouncilEngine:
         self.manifest.evidence = self.inventory.refs
         self.manifest.artifacts = self.store.artifact_names()
         self.store.write_json("manifest.json", self.manifest)
+        self.store.seal_manifest()
+        self.manifest = RunManifest.model_validate(self.store.read_json("manifest.json"))
 
     def remaining_calls(self) -> int:
         return max(0, self.budget.cap - self.budget.used)

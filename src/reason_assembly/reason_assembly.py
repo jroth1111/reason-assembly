@@ -586,6 +586,8 @@ def regrade_command(args: argparse.Namespace) -> RunManifest:
     child_store.write_json("manifest.json", raw)
     raw["artifacts"] = child_store.artifact_names()
     child_store.write_json("manifest.json", raw)
+    child_store.seal_manifest()
+    raw = child_store.read_json("manifest.json")
     if args.json:
         print(json.dumps(raw, indent=2, sort_keys=True))
     else:
@@ -1127,6 +1129,7 @@ def outcome_command(args: argparse.Namespace) -> Outcome:
                 "calls": manifest.calls_used,
             })
     effects_store.locked_write(lambda effects: effects["effects"].extend(new_effects))
+    store.seal_manifest()
     return outcome
 
 

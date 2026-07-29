@@ -1853,6 +1853,12 @@ def apply_run(
     run_root = locate_run_root(state, run_id)
     store = RunStore.open_existing(run_root, run_id, guard=guard)
     manifest = store.read_json("manifest.json")
+    integrity_issues = store.verify_integrity()
+    if integrity_issues != ["manifest not sealed"] and integrity_issues:
+        raise RuntimeError(
+            "apply refuses run artifacts that fail integrity verification: "
+            + ", ".join(integrity_issues)
+        )
     if manifest.get("schema_version") != 4:
         raise RuntimeError("apply supports schema-v4 runs only")
     verdict = store.read_json("verdict.json")
