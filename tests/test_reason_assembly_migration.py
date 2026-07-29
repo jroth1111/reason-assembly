@@ -65,12 +65,12 @@ def tree_hash(root: Path) -> str:
     return digest.hexdigest()
 
 
-def test_canonical_identity_is_reason_assembly_050():
+def test_canonical_identity_is_reason_assembly_051():
     assert PRODUCT_NAME == "Reason Assembly"
     assert PRODUCT_SLUG == "reason-assembly"
-    assert VERSION == "0.5.0"
+    assert VERSION == "0.5.1"
     assert LEGACY_CLI == "ccycouncil"
-    assert USER_AGENT == "reason-assembly/0.5.0"
+    assert USER_AGENT == "reason-assembly/0.5.1"
     assert SESSION_NAMESPACE == "reason-assembly:v4"
     assert METADATA_CLIENT_VERSION == "reason-assembly-v4"
     assert reason_assembly.parser().prog == "reason-assembly"
@@ -85,7 +85,7 @@ def test_canonical_and_deprecated_commands_report_canonical_version():
         env={**os.environ, "PYTHONPATH": "", "UV_FROZEN": "1"},
     )
     assert canonical.returncode == 0, canonical.stderr
-    assert canonical.stdout.strip() == "reason-assembly 0.5.0"
+    assert canonical.stdout.strip() == "reason-assembly 0.5.1"
     assert canonical.stderr == ""
 
     legacy = subprocess.run(
@@ -96,7 +96,7 @@ def test_canonical_and_deprecated_commands_report_canonical_version():
         env={**os.environ, "PYTHONPATH": "", "UV_FROZEN": "1"},
     )
     assert legacy.returncode == 0, legacy.stderr
-    assert legacy.stdout.strip() == "reason-assembly 0.5.0"
+    assert legacy.stdout.strip() == "reason-assembly 0.5.1"
     assert "deprecated" in legacy.stderr.lower()
     assert "reason-assembly" in legacy.stderr
 
@@ -584,11 +584,11 @@ def test_release_identity_is_consistent_across_all_release_surfaces():
     changelog = (ROOT / "CHANGELOG.md").read_text()
 
     assert project["name"] == PRODUCT_SLUG == "reason-assembly"
-    assert project["version"] == VERSION == "0.5.0"
+    assert project["version"] == VERSION == "0.5.1"
     assert root_package["name"] == PRODUCT_SLUG
     assert root_package["version"] == VERSION
     assert f"## {VERSION} - " in changelog
-    assert RELEASE_TAG == "v0.5.0"
+    assert RELEASE_TAG == "v0.5.1"
 
     for command in ("reason-assembly", "ccycouncil"):
         completed = subprocess.run(
