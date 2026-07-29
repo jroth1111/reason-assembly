@@ -1,6 +1,6 @@
 [project]
 name = "reason-assembly"
-version = "0.5.0"
+version = "0.5.1"
 description = "An evidence-backed agent council built for empirical evaluation"
 readme = "README.md"
 license = "MIT"

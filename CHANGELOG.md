@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## 0.5.1 - 2026-07-29
+
+- Update the exact `pypdf` production dependency pin from 6.6.0 to 6.14.2,
+  resolving 58 Dependabot alerts, including four high-severity denial-of-service
+  advisories for malformed PDF inputs.
+- Update the exact `pytest` development dependency pin from 9.0.2 to 9.0.3,
+  resolving the temporary-directory handling advisory.
+- Retain the schema-v4 protocol and all 0.5.x compatibility guarantees,
+  including the deprecated `ccycouncil` command and `model-council` skill alias.
+
 ## 0.5.0 - 2026-07-28
 
 - Rename the product, package, skill, and canonical command to Reason Assembly

@@ -3,7 +3,7 @@ from __future__ import annotations
 PRODUCT_NAME = "Reason Assembly"
 PRODUCT_SLUG = "reason-assembly"
 PRODUCT_DESCRIPTOR = "An evidence-backed agent council built for empirical evaluation."
-VERSION = "0.5.0"
+VERSION = "0.5.1"
 RELEASE_TAG = f"v{VERSION}"
 
 CANONICAL_CLI = PRODUCT_SLUG
