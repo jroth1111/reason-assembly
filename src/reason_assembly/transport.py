@@ -19,7 +19,6 @@ from .identity import (
     PROXY_ADAPTER_CONFIG_ENV,
     PROXY_CONFIG_ENV,
     SESSION_NAMESPACE,
-    LEGACY_WORKER_EXECUTABLE_ENV,
     WORKER_EXECUTABLE_ENV,
     USER_AGENT,
 )
@@ -91,9 +90,7 @@ class ProxySettings:
         self.api_key = str(keys[0])
         self.exact_secrets = self._collect_exact_secrets(raw)
         self.worker_executable = (
-            os.environ.get(WORKER_EXECUTABLE_ENV)
-            or os.environ.get(LEGACY_WORKER_EXECUTABLE_ENV)
-            or "codex"
+            os.environ.get(WORKER_EXECUTABLE_ENV) or "codex"
         )
 
     @staticmethod

@@ -6,7 +6,6 @@ import asyncio
 import hashlib
 import json
 import logging
-import os
 import re
 import subprocess
 import sys
@@ -20,7 +19,7 @@ import httpx
 from pydantic import ValidationError
 
 from .artifacts import RunStore, SecretGuard
-from .identity import CANONICAL_CLI, LEGACY_CLI, PRODUCT_DESCRIPTOR, VERSION
+from .identity import CANONICAL_CLI, PRODUCT_DESCRIPTOR, VERSION
 from .contracts import (
     ClaimGenealogy,
     FinalityCertificate,
@@ -42,12 +41,7 @@ from .git_worker import (
 from .protocols import CouncilRequest, ProtocolResult, STATE, new_run_id, run_council
 from .reliability import ReliabilityStore
 from .routing import fixed_route
-from .state_compat import (
-    compatible_state_roots,
-    iter_run_roots,
-    locate_run_root,
-    prepare_state_root,
-)
+from .state_compat import prepare_state_root
 from .v4 import CoFailureStore, digest, propagate_taint
 from .v4_state import AnchorStore, PrivateJsonStore
 from .transport import (
@@ -462,15 +456,13 @@ def print_models(
 
 
 def open_store(run_id: str) -> RunStore:
-    root = locate_run_root(STATE, run_id)
-    return RunStore.open_existing(root, run_id, SecretGuard())
+    return RunStore.open_existing(STATE, run_id, SecretGuard())
 
 
 def require_writable_canonical_store(store: RunStore) -> None:
     if store.root != STATE.expanduser().resolve():
         raise RuntimeError(
-            "legacy runs are read-only; wait for the run to complete and rerun "
-            "Reason Assembly to import it before recording an outcome"
+            "run store is outside the configured Reason Assembly state root"
         )
 
 
@@ -518,7 +510,7 @@ def regrade_command(args: argparse.Namespace) -> RunManifest:
         STATE,
         SecretGuard(),
         new_run_id,
-        collision_roots=compatible_state_roots(STATE),
+        collision_roots=(STATE,),
     )
     child_id = child_store.run_id
     preserved = {}
@@ -1169,8 +1161,13 @@ def stats_command() -> dict[str, Any]:
         "mode": [],
     }
     runs = 0
-    run_roots = iter_run_roots(STATE)
-    for run_id, _root in run_roots:
+    runs_root = STATE / "runs"
+    run_ids = (
+        sorted(path.name for path in runs_root.iterdir() if path.is_dir())
+        if runs_root.is_dir()
+        else []
+    )
+    for run_id in run_ids:
         store, manifest = load_v4_run(run_id)
         try:
             outcome = Outcome.model_validate(store.read_json("outcome.json"))
@@ -1440,13 +1437,7 @@ def main() -> None:
             file=sys.stderr,
         )
     try:
-        migration = prepare_state_root(STATE)
-        if migration.errors:
-            print(
-                f"{CANONICAL_CLI}: warning: legacy state import encountered "
-                f"{len(migration.errors)} skipped entries; read-only discovery remains active",
-                file=sys.stderr,
-            )
+        prepare_state_root(STATE)
         if args.cmd == "show":
             show_command(args)
             return
@@ -1514,12 +1505,6 @@ def main() -> None:
             message = SecretGuard().redact_text(str(error))
         print(f"{CANONICAL_CLI}: {message}", file=sys.stderr)
         raise SystemExit(2)
-
-
-def legacy_main() -> None:
-    if os.environ.get("REASON_ASSEMBLY_SUPPRESS_DEPRECATION") != "1":
-        print(f"{LEGACY_CLI} is deprecated; use {CANONICAL_CLI} instead.", file=sys.stderr)
-    main()
 
 
 if __name__ == "__main__":

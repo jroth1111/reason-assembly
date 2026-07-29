@@ -36,14 +36,12 @@ from .deliberation import deterministic_order, judgment_assessment
 from .identity import (
     BRANCH_NAMESPACE,
     EPHEMERAL_KEY_ENV,
-    LEGACY_EPHEMERAL_KEY_ENV,
     LOCAL_COMMIT_EMAIL,
     LOCAL_COMMIT_NAME,
     LOCAL_COMMIT_PREFIX,
     PRODUCT_SLUG,
 )
 from .routing import Route, shuffled_labels
-from .state_compat import locate_run_root
 from .transport import ProxySettings, ProxyTransport
 from .verification import command_shell, snapshot_sources
 from .v4 import (
@@ -577,7 +575,6 @@ def _invoke_subprocess_worker(
             "HOME": str(codex_home),
             "CODEX_HOME": str(codex_home),
             EPHEMERAL_KEY_ENV: settings.api_key,
-            LEGACY_EPHEMERAL_KEY_ENV: settings.api_key,
         }
     )
     try:
@@ -1850,8 +1847,7 @@ def apply_run(
     settings: ProxySettings | None = None,
 ) -> str:
     guard = SecretGuard(settings.exact_secrets) if settings else SecretGuard()
-    run_root = locate_run_root(state, run_id)
-    store = RunStore.open_existing(run_root, run_id, guard=guard)
+    store = RunStore.open_existing(state, run_id, guard=guard)
     manifest = store.read_json("manifest.json")
     integrity_issues = store.verify_integrity()
     if integrity_issues != ["manifest not sealed"] and integrity_issues:

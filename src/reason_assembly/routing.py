@@ -22,7 +22,7 @@ from .contracts import (
     TaskKind,
 )
 from .deliberation import BUDGET_CAPS, canonical
-from .identity import LEGACY_ROUTING_POLICY_ENV, ROUTING_POLICY_ENV
+from .identity import ROUTING_POLICY_ENV
 from .reliability import ReliabilitySnapshot, ReliabilityStore, exploratory_run
 
 
@@ -73,7 +73,7 @@ def load_routing_policy(
 ) -> RoutingPolicy:
     """Load local role identities without synchronizing or touching the proxy."""
     values = os.environ if environ is None else environ
-    configured = values.get(ROUTING_POLICY_ENV) or values.get(LEGACY_ROUTING_POLICY_ENV)
+    configured = values.get(ROUTING_POLICY_ENV)
     path = Path(configured).expanduser() if configured else Path(state_root) / "routing-policy.toml"
     raw: dict[str, Any] = {}
     if path.is_file():
@@ -91,9 +91,8 @@ def load_routing_policy(
 
     def role(name: str) -> str | None:
         env_name = f"REASON_ASSEMBLY_{name.upper()}_MODEL"
-        legacy_name = f"CCYCOUNCIL_{name.upper()}_MODEL"
         fallback = getattr(defaults, f"{name}_model")
-        value = values.get(env_name) or values.get(legacy_name) or roles.get(name) or fallback
+        value = values.get(env_name) or roles.get(name) or fallback
         return str(value) if value else None
 
     return RoutingPolicy(
