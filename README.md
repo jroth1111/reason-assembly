@@ -97,7 +97,7 @@ levels:
 | Level | Meaning |
 | --- | --- |
 | **Enforced invariant** | Code and tests enforce the behavior: for example family separation, mirrored order, deterministic checks, contribution completeness, or validator gates. |
-| **Adaptive empirical policy** | Activated outcome data may change routing or the next operation within a task/domain/route epoch. This is observational, not causal proof. |
+| **Adaptive empirical policy** | Activated reliability may change routing within model/family/role/task/domain buckets; activated operation effects may change the next operation within a task kind. This is observational, not causal proof. |
 | **Recommended heuristic** | The order follows implemented failure-mode logic but has not won a comparative benchmark or ablation study. |
 | **Unsupported claim** | The project does not claim that more models, raw majority, same-family duplication, or any named provider is inherently superior. |
 
@@ -261,8 +261,9 @@ reason-assembly decide --prompt-file decision.md \
 
 - reserve alternate families for collapse recovery, validation, and tiebreaking;
 - up to three adaptive operations;
-- high-risk evidence and validator gates override convenience; missing qualified routes
-  produce abstention rather than a smaller pseudo-consensus.
+- high-risk evidence and validator gates override convenience; missing validator routes
+  force blocked/abstained finality, while missing proposer-family quorum fails the run
+  rather than manufacturing a smaller pseudo-consensus.
 
 ```sh
 reason-assembly decide --prompt-file launch-gate.md \
@@ -516,8 +517,8 @@ Calibration can change composition only through guarded paths:
   observations;
 - selective judgment needs at least 29 or 59 accepted examples for its 10% or 5%
   regimes; and
-- route epochs and anchors prevent stale observations from silently governing a changed
-  catalogue or policy.
+- route epochs and anchors limit reuse of routing/calibration records after catalogue or
+  policy drift; operation effects are currently filtered only by task kind.
 
 Current implementation boundaries are explicit: learned pair independence does not
 change route selection; `peer_models` is unused by the scorer; proposer–verifier

@@ -61,8 +61,8 @@ Task kind controls composition and aggregation. Precedence is:
 `decide` and `review` execute this order:
 
 1. sanitize and persist the request snapshot;
-2. snapshot sources, synchronize catalogue/metadata, preflight health, and reserve judge
-   and validator routes;
+2. snapshot sources, synchronize catalogue/metadata, preflight health, and reserve the
+   judge and fixed utility route, plus the integrator for worker mode;
 3. construct and lock the task contract, rubric, risk, and reporting rules;
 4. reroute family-distinct proposers for the inferred task kind;
 5. pack evidence, optionally extract structured source evidence, and collect independent
@@ -104,7 +104,7 @@ sequence from silently accumulating the normal one-to-three additional operation
 Cold-start precedence is: verify a testable conflict; defend a load-bearing coherent
 minority; sample an alternate route after approach collapse; use task-specific
 ranked-pairs/synthesis/safety logic; use higher-order aggregation when route reliability
-is low and verification is unavailable; rebut remaining non-testable ambiguity; verify
+is low and conflicts remain; rebut remaining non-testable ambiguity; verify
 missing load-bearing evidence; otherwise proceed to judgment.
 
 After 20 labeled operation outcomes, an active task-scoped operation-effect score may
