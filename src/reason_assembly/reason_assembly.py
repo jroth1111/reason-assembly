@@ -1348,10 +1348,15 @@ def stats_command() -> dict[str, Any]:
 
 
 async def async_main(args: argparse.Namespace) -> ProtocolResult | int | None:
-    if getattr(args, "demo", False) and args.cmd in {"decide", "red-team"}:
+    if getattr(args, "demo", False) and args.cmd in {"decide", "red-team", "review"}:
         from .demo import run_demo
 
-        result = run_demo(args.cmd, prompt_value(args))
+        prompt = (
+            prompt_value(args)
+            if args.cmd in {"decide", "red-team"}
+            else "Offline review demonstration with bundled evidence."
+        )
+        result = run_demo(args.cmd, prompt)
         print(format_result(result, args.json))
         return result
     if args.cmd == "sync":
