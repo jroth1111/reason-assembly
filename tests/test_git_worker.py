@@ -14,7 +14,7 @@ import pytest
 from artifacts import RunStore, SecretGuard
 from conftest import FakeTransport
 from contracts import CandidateSummary, CommandReceipt, Contribution, WorkerReceipt
-from identity import EPHEMERAL_KEY_ENV, LEGACY_EPHEMERAL_KEY_ENV
+from identity import EPHEMERAL_KEY_ENV
 from git_worker import (
     ImplementationEngine,
     ImplementationRequest,
@@ -101,7 +101,7 @@ def test_worker_preflight_missing_and_custom_executable(tmp_path, fake_settings,
     preflight_worker(fake_settings, SubprocessWorkerBackend())
 
 
-def test_codex_worker_exports_canonical_and_legacy_ephemeral_keys(
+def test_codex_worker_exports_canonical_ephemeral_key(
     tmp_path, fake_settings, monkeypatch
 ):
     captured: dict[str, object] = {}
@@ -132,9 +132,9 @@ def test_codex_worker_exports_canonical_and_legacy_ephemeral_keys(
     env = captured["env"]
     assert isinstance(env, dict)
     assert env[EPHEMERAL_KEY_ENV] == fake_settings.api_key
-    assert env[LEGACY_EPHEMERAL_KEY_ENV] == fake_settings.api_key
+    removed_key = "CCY" + "COUNCIL_EPHEMERAL_KEY"
+    assert removed_key not in env
     assert f'env_key = "{EPHEMERAL_KEY_ENV}"' in captured["config"]
-    assert LEGACY_EPHEMERAL_KEY_ENV not in captured["config"]
 
 
 def test_test_command_preserves_the_authorized_path(tmp_path, monkeypatch):

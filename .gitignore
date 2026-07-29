@@ -40,7 +40,6 @@ secrets/
 
 # Reason Assembly private state and generated evidence
 .reason-assembly/
-.ccycouncil/
 state/
 runs/
 artifacts/

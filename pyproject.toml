@@ -1,6 +1,6 @@
 [project]
 name = "reason-assembly"
-version = "0.5.1"
+version = "0.6.0"
 description = "An evidence-backed agent council built for empirical evaluation"
 readme = "README.md"
 license = "MIT"
@@ -29,7 +29,6 @@ Source = "https://github.com/jroth1111/reason-assembly"
 
 [project.scripts]
 reason-assembly = "reason_assembly:main"
-ccycouncil = "reason_assembly:legacy_main"
 
 [build-system]
 requires = ["setuptools>=77"]
@@ -47,10 +46,6 @@ reason_assembly = ["py.typed"]
 [tool.setuptools.data-files]
 "share/reason-assembly" = ["SKILL.md"]
 "share/reason-assembly/agents" = ["agents/openai.yaml"]
-"share/reason-assembly/compat/model-council" = ["compat/model-council/SKILL.md"]
-"share/reason-assembly/compat/model-council/agents" = [
-  "compat/model-council/agents/openai.yaml",
-]
 "share/reason-assembly/references" = [
   "references/protocol.md",
   "references/provenance.md",

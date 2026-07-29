@@ -1,4 +1,4 @@
-"""Reason Assembly public package and transitional CLI-module facade."""
+"""Reason Assembly public package."""
 
 import sys
 from types import ModuleType
@@ -22,7 +22,3 @@ sys.modules[__name__].__class__ = _FacadeModule
 
 def main() -> None:
     _cli.main()
-
-
-def legacy_main() -> None:
-    _cli.legacy_main()

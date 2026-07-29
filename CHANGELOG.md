@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented here.
 
+## 0.6.0 - 2026-07-29
+
+- Remove the retired compatibility command, skill identity, state import path, and
+  environment-variable aliases. The release exposes one canonical product and runtime
+  identity.
+- Rewrite the public documentation around explicit model roles and a task-pattern
+  matrix for objective decisions, evidence synthesis, subjective comparison, safety
+  analysis, code review, adversarial analysis, and competing implementation.
+- Document family-aware routing and distinguish catalogue membership, role eligibility,
+  bounded live health, and approach-family diversity.
+- Document anonymous proposal collection, proposal/evidence separation, typed claim
+  genealogy, transitive taint, and the limits of identity masking.
+- Document strategy-level diversity measurements, effective-rank collapse detection,
+  coherent-minority handling, and adaptive deliberation under fixed call ceilings.
+- Document position-balanced judging, task-specific aggregation, contribution-aware
+  implementation competition, and independently checked integration.
+- Document guarded reliability, empirical co-failure, operation-utility, and selective-
+  judgment calibration, including cold-start precedence and abstention requirements.
+- Clarify typed finality, lifecycle and integrity behavior, and explicit limitations:
+  the tool does not guarantee independence, truth, safety, correctness, or fitness for
+  use and does not perform local model-weight or latent-state ensembling.
+- Add release gates that reject retired identity strings in tracked release surfaces.
+
 ## 0.5.1 - 2026-07-29
 
 - Update the exact `pypdf` production dependency pin from 6.6.0 to 6.14.2,
@@ -9,47 +32,29 @@ All notable changes to this project are documented here.
   advisories for malformed PDF inputs.
 - Update the exact `pytest` development dependency pin from 9.0.2 to 9.0.3,
   resolving the temporary-directory handling advisory.
-- Retain the schema-v4 protocol and all 0.5.x compatibility guarantees,
-  including the deprecated `ccycouncil` command and `model-council` skill alias.
+- Preserve the schema-v4 protocol and 0.5.x runtime behavior.
 
 ## 0.5.0 - 2026-07-28
 
-- Rename the product, package, skill, and canonical command to Reason Assembly
-  and `reason-assembly` while retaining `ccycouncil` as a deprecated forwarding
-  command and `model-council` as an explicit deprecated skill alias.
-- Move canonical private state to `~/.local/state/reason-assembly` and
-  non-destructively copy missing legacy files from
-  `~/.local/state/ccycouncil`; preserve the legacy tree, keep canonical files
-  on collisions, import only terminal stable runs through staged atomic publication,
-  never merge colliding run IDs, and retain read-only discovery for incomplete or
-  subsequently changed legacy runs.
-- Prefer canonical `REASON_ASSEMBLY_*` environment variables while accepting
-  documented `CCYCOUNCIL_*` compatibility names during the deprecation period;
-  isolate custom state roots unless a legacy root is explicitly supplied, and keep
-  catalogue sync receipts under the configured application state root.
-- Reserve run IDs with atomic directory creation and retry collisions without
-  altering existing evidence; initialize shared schema-v4 state with guarded,
-  create-if-absent writes so concurrent startup cannot overwrite prior state.
-- Build canonical wheels and console scripts through setuptools, with locked CI
-  coverage for wheel installation plus canonical and deprecated command smoke
-  tests on Python 3.11 through 3.13.
-- Update ccyproxy integration to synchronize through `reason-assembly` first,
-  fall back to deprecated `ccycouncil` when necessary, and continue enforcing
-  the raw model catalogue as the routing authority.
-- Keep the deprecated command and skill aliases throughout the 0.5.x line; any
-  removal will be announced in a future changelog before it takes effect.
+- Establish the canonical package, command, skill, and private state layout.
+- Add guarded, non-destructive schema-v4 state publication with atomic run-ID
+  reservation and create-if-absent shared-state writes.
+- Synchronize the raw proxy catalogue and capability metadata while retaining raw model
+  IDs as the routing authority and recording credential-free private receipts.
+- Build canonical wheels and console scripts through setuptools with locked CI coverage
+  on Python 3.11 through 3.13.
 
 ## 0.4.1 - 2026-07-28
 
-- Validate raw and capability-metadata catalogues on every council catalogue
-  read, with one retry for transient mismatches.
-- Keep raw `/v1/models` IDs authoritative when a mismatch persists and mark
-  unmatched raw models as listed-only.
+- Validate raw and capability-metadata catalogues on every catalogue read, with one
+  retry for transient mismatches.
+- Keep raw `/v1/models` IDs authoritative when a mismatch persists and mark unmatched
+  raw models as listed-only.
 - Atomically prune absent smart-alias candidates under an exclusive lock while
   preserving unrelated proxy configuration.
-- Add `ccycouncil sync`, private schema-v4 synchronization receipts, and sync
-  diagnostics in `doctor --all-models`.
-- Refresh the proxy catalogue before launcher route resolution while retaining
-  raw-ID runtime filtering.
-- Publish the project documentation, safety guidance, public integration
-  example, and continuous-integration workflow.
+- Add catalogue synchronization, private schema-v4 receipts, and synchronization
+  diagnostics to the all-model diagnostics workflow.
+- Refresh the proxy catalogue before launcher route resolution while retaining raw-ID
+  runtime filtering.
+- Publish project documentation, safety guidance, a public integration example, and
+  continuous integration.

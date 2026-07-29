@@ -76,7 +76,7 @@ from .routing import (
     shuffled_labels,
     stable_claim_id,
 )
-from .state_compat import compatible_state_roots, resolve_state_root
+from .state_compat import resolve_state_root
 from .transport import (
     CallBudget,
     CallBudgetExceeded,
@@ -279,7 +279,7 @@ class CouncilEngine:
             self.state,
             self.guard,
             new_run_id,
-            collision_roots=compatible_state_roots(self.state),
+            collision_roots=(self.state,),
         )
         self.run_id = self.store.run_id
         combined = (
