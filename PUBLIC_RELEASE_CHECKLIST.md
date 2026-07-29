@@ -46,7 +46,7 @@ that a scanner found it.
 uv sync --locked --dev
 uv run ruff check .
 uv run pytest -q
-uv run python -m compileall -q scripts tests
+uv run python -m compileall -q src scripts tests
 git diff --check
 ```
 

@@ -458,7 +458,7 @@ credentials, private paths and URLs, prompts, sources, and run evidence. See
 uv sync --locked --dev
 uv run ruff check .
 uv run pytest -q
-uv run python -m compileall -q scripts tests
+uv run python -m compileall -q src scripts tests
 ```
 
 Contributions are welcome; see [`CONTRIBUTING.md`](CONTRIBUTING.md). Security reports
